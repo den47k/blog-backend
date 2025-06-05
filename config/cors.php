@@ -21,17 +21,20 @@ return [
 
     'allowed_origins' => [
         'http://localhost:3000',
-        'http://localhost:5173'
+        'http://frontend:3000'
     ],
 
     'allowed_origins_patterns' => [],
 
-    'allowed_headers' => ['*'],
+    'allowed_headers' => [
+        '*',
+        'X-CSRF-TOKEN'
+    ],
 
     'exposed_headers' => [],
 
     'max_age' => 0,
 
-    'supports_credentials' => false,
+    'supports_credentials' => true,
 
 ];
