@@ -13,3 +13,10 @@ Route::get('/test', function () {
         'time' => now()->toDateTimeString()
     ]);
 });
+
+Route::post('/test', function () {
+    return response()->json([
+        'message' => 'test message',
+        'time' => now()->toDateTimeString()
+    ]);
+});
