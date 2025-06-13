@@ -23,7 +23,9 @@ class VerificationController extends Controller
 
         Auth::login($user);
 
-        return redirect(config('app.frontend_url'));
+        return response()->json([
+            'message' => 'Email verified successfully'
+        ]);
     }
 
     public function resend(ResendVerificationRequest $request)
