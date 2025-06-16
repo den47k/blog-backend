@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ResendVerificationRequest;
 use App\Services\VerificationService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class VerificationController extends Controller
 {
@@ -20,8 +19,6 @@ class VerificationController extends Controller
         if (!$user) {
             return response()->json(['message' => 'Invalid verification link'], 400);
         }
-
-        Auth::login($user);
 
         return response()->json([
             'message' => 'Email verified successfully'

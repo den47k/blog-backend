@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\EmailVerified;
 use App\Http\Requests\ResendVerificationRequest;
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
@@ -28,6 +29,7 @@ class VerificationService
 
         if ($user->markEmailAsVerified()) {
             event(new Verified($user));
+            event(new EmailVerified($user));
         }
 
         return $user;

@@ -30,8 +30,6 @@ class AuthService
                 'email' => [trans('auth.failed')],
             ]);
         }
-
-        Log::info('authenticated');
     }
 
     public function logout()

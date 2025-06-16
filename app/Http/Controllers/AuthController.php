@@ -7,6 +7,7 @@ use App\Http\Requests\RegisterRequest;
 use App\Services\AuthService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
@@ -19,6 +20,8 @@ class AuthController extends Controller
         $user = $this->authService->register($request->validated());
 
         event(new Registered($user));
+
+        Auth::login($user);
 
         return response()->json([
             'message' => 'User registered. Verification email sent.',
