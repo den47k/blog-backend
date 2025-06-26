@@ -14,7 +14,8 @@ class CreatePrivateConversationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'recipient_tag' => 'required|string|exists:users,tag',
+            'user_id' => ['required', 'string', 'exists:users,id'],
+            'should_join_now' => ['nullable', 'boolean']
         ];
     }
 

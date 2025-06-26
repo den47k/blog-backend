@@ -26,13 +26,14 @@ class ConversationController extends Controller
 
     public function createPrivateConversation(CreatePrivateConversationRequest $request): JsonResponse
     {
-        $recipient = User::where('tag', $request->recipient_tag)->firstOrFail();
+        $recipient = User::findOrFail($request->user_id);
 
         if ($request->user()->id === $recipient->id) return response()->json(['message' => 'Can\'t create conversation with yourseld'], 422);
 
         $conversation = $this->conversationService->createPrivateConversation(
             $request->user(),
-            $recipient
+            $recipient,
+            $request->should_join_now
         );
 
         return response()->json([

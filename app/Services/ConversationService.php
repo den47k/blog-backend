@@ -25,13 +25,15 @@ class ConversationService
             });
     }
 
-    public function createPrivateConversation(User $initiator, User $other): Conversation
+    public function createPrivateConversation(User $initiator, User $other, bool $should_join_now): Conversation
     {
-        return DB::transaction(function () use ($initiator, $other) {
-            if ($existingConversation = Conversation::findExistingConversation($initiator, $other)) {
-                $this->ensureParticipantJoined($existingConversation, $initiator);
-                $this->ensureParticipantJoined($existingConversation, $other);
+        return DB::transaction(function () use ($initiator, $other, $should_join_now) {
+            $existingConversation = Conversation::findExistingConversation($initiator, $other);
 
+            if ($existingConversation) {
+                if ($should_join_now && $existingConversation->participants->isNotEmpty()) {
+                    $existingConversation->participants[0]->update(['joined_at' => now()]);
+                }
                 return $existingConversation;
             }
 
@@ -40,7 +42,7 @@ class ConversationService
                 'is_public' => false,
             ]);
 
-            $conversation->addParticipant($initiator, now());
+            $conversation->addParticipant($initiator, $should_join_now ? now() : null);
             $conversation->addParticipant($other, null);
 
             return $conversation;
@@ -48,13 +50,4 @@ class ConversationService
     }
 
     // public function createGroupConversation(): Conversation {}
-
-    protected function ensureParticipantJoined(Conversation $conversation, User $user): void
-    {
-        $participant = $conversation->participants()->where('user_id', $user->id)->first();
-
-        if ($participant && is_null($participant->joined_at)) {
-            $participant->update(['joined_at' => now()]);
-        }
-    }
 }

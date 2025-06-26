@@ -11,18 +11,24 @@ class ConversationResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'type' => $this->conversation_type,
-            'last_message' => $this->whenLoaded('lastMessage', fn() => [
-                'id' => $this->lastMessage->id,
-                'body' => $this->lastMessage->body,
-                'created_at' => $this->lastMessage->created_at,
-            ]),
-            'other_user' => $this->other_participant ? [
-                'id' => $this->other_participant->user->id,
-                'name' => $this->other_participant->user->name,
-                'tag' => $this->other_participant->user->tag,
-            ] : null,
-            'updated_at' => $this->updated_at,
+            'title' => $this->conversation_type === 'group' 
+                ? $this->title 
+                : (optional($this->other_participant)->user->name ?? ''),
+            'description' => $this->conversation_type === 'group' ? $this->description : null,
+            'lastMessage' => $this->whenLoaded('lastMessage', function () {
+                return $this->lastMessage->body ?? '';
+            }, ''),
+            'timestamp' => $this->whenLoaded('lastMessage', function () {
+                return $this->lastMessage 
+                    ? (string) $this->lastMessage->created_at 
+                    : (string) $this->updated_at;
+            }, (string) $this->updated_at),
+            'unread' => 0, // Default until implemented
+            'avatar' => '', // Default until implemented
+            'online' => null, // Default until implemented
+            'isGroup' => $this->conversation_type === 'group',
+            'createdAt' => (string) $this->created_at,
+            'updatedAt' => (string) $this->updated_at,
         ];
     }
 }

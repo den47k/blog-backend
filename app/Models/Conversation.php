@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use App\Models\User;
 use App\Models\Participant;
 use App\Models\Message;
-use DateTimeInterface;
 
 class Conversation extends Model
 {
@@ -48,12 +47,15 @@ class Conversation extends Model
 
 
     // Helper methods
-    public static function findExistingConversation(User $user1, User $user2): ?Conversation
+    public static function findExistingConversation(User $initiator, User $other): ?Conversation
     {
         return self::where('conversation_type', 'private')
-            ->whereHas('participants', fn($q) => $q->where('user_id', $user1->id))
-            ->whereHas('participants', fn($q) => $q->where('user_id', $user2->id))
+            ->whereHas('participants', fn($q) => $q->where('user_id', $initiator->id))
+            ->whereHas('participants', fn($q) => $q->where('user_id', $other->id))
             ->has('participants', '=', 2)
+            ->with(['participants' => function($q) use ($initiator) {
+                $q->where('user_id', $initiator->id);
+            }])
             ->first();
     }
 

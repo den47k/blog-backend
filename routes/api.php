@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ConversationController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\VerificationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -22,8 +23,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
+    Route::get('/users/search', [UserController::class, 'search'])->name('users.search');
+
     Route::get('/conversations', [ConversationController::class, 'index'])->name('conversation.index');
     Route::post('/conversations/private', [ConversationController::class, 'createPrivateConversation'])->name('conversation.private');
+    Route::post('/conversations/group', [ConversationController::class, 'createGroupConversation'])->name('conversation.group');
 });
 
 
