@@ -20,7 +20,6 @@ class ConversationController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $conversations = $this->conversationService->getConversationsForUser($request->user());
-        Log::info($conversations);
         return ConversationResource::collection($conversations);
     }
 

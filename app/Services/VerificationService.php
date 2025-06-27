@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Events\EmailVerified;
 use App\Http\Requests\ResendVerificationRequest;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request;
@@ -32,7 +33,7 @@ class VerificationService
             event(new EmailVerified($user));
         }
 
-        return $user;
+        return new UserResource($user);
     }
 
     public function resendVerification(ResendVerificationRequest $request)
@@ -44,6 +45,6 @@ class VerificationService
         }
 
         $user->sendEmailVerificationNotification();
-        return $user;
+        return new UserResource($user);
     }
 }

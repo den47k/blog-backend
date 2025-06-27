@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VerificationController;
+use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -19,7 +20,9 @@ Route::post('/email/resend', [VerificationController::class, 'resend'])->name('v
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/user', fn(Request $request) => $request->user());
+    Route::get('/user', function (Request $request) {
+        return new UserResource($request->user());
+    });
 });
 
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {

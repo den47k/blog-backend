@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Http\Resources\UserResource;
 use App\Services\AuthService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
@@ -25,7 +26,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'User registered. Verification email sent.',
-            'user' => $user
+            'user' => new UserResource($user)
         ], 201);
     }
 
@@ -34,7 +35,7 @@ class AuthController extends Controller
         $this->authService->login($request);
         $request->session()->regenerate();
 
-        return response()->json(['user' => $request->user()]);
+        return response()->json(['user' => new UserResource($request->user())]);
     }
 
     public function logout(Request $request)
