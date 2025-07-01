@@ -22,6 +22,13 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        Schema::create('message_user', function (Blueprint $table) {
+            $table->foreignUuid('message_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('user_id')->constrained()->cascadeOnDelete();
+            $table->timestamp('read_at')->nullable();
+            $table->primary(['message_id', 'user_id']);
+        });
+
         Schema::table('conversations', function (Blueprint $table) {
             $table->foreignUuid('last_message_id')->nullable()->constrained('messages');
         });

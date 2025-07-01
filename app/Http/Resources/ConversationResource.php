@@ -11,12 +11,13 @@ class ConversationResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'userTag' => $this->conversation_type === 'private' ? $this->tag : null,
             'title' => $this->conversation_type === 'group' 
                 ? $this->title 
                 : (optional($this->other_participant)->user->name ?? ''),
             'description' => $this->conversation_type === 'group' ? $this->description : null,
             'lastMessage' => $this->whenLoaded('lastMessage', function () {
-                return $this->lastMessage->body ?? '';
+                return $this->lastMessage->content ?? '';
             }, ''),
             'timestamp' => $this->whenLoaded('lastMessage', function () {
                 return $this->lastMessage 

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ConversationController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VerificationController;
 use App\Http\Resources\UserResource;
@@ -28,9 +29,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/users/search', [UserController::class, 'search'])->name('users.search');
 
-    Route::get('/conversations', [ConversationController::class, 'index'])->name('conversation.index');
-    Route::post('/conversations/private', [ConversationController::class, 'createPrivateConversation'])->name('conversation.private');
-    Route::post('/conversations/group', [ConversationController::class, 'createGroupConversation'])->name('conversation.group');
+    Route::prefix('conversations')->group(function () {
+        Route::get('/', [ConversationController::class, 'index'])->name('conversation.index');
+        Route::post('/private', [ConversationController::class, 'createPrivateConversation'])->name('conversation.private');
+        Route::post('/group', [ConversationController::class, 'createGroupConversation'])->name('conversation.group');
+
+        Route::get('/{conversation:id}/messages', [MessageController::class, 'index'])->name('conversation.messages.index');
+        Route::post('/{conversation:id}/messages', [MessageController::class, 'storeMessage'])->name('conversation.messages.store');
+    });
 });
 
 
