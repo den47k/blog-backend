@@ -11,7 +11,9 @@ class ConversationResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'userTag' => $this->conversation_type === 'private' ? $this->tag : null,
+            'userTag' => $this->conversation_type === 'private'
+                ? ($this->other_participant->user->tag)
+                : null,
             'title' => $this->conversation_type === 'group' 
                 ? $this->title 
                 : (optional($this->other_participant)->user->name ?? ''),

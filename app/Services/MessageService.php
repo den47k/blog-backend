@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use App\Events\MessageSent;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class MessageService
 {
@@ -33,7 +35,7 @@ class MessageService
                 ->whereNull('joined_at')
                 ->update(['joined_at' => now()]);
 
-            // event(new MessageSent($message)); ToDO
+            broadcast(new MessageSent($message->load('user')))->toOthers();
 
             return $message;
         });
