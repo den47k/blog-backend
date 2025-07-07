@@ -12,7 +12,7 @@ class Conversation extends Model
 {
     use HasUuids;
 
-    
+
     // Model attribute configuration
     protected $fillable = [
         'conversation_type',
@@ -52,10 +52,9 @@ class Conversation extends Model
         return self::where('conversation_type', 'private')
             ->whereHas('participants', fn($q) => $q->where('user_id', $initiator->id))
             ->whereHas('participants', fn($q) => $q->where('user_id', $other->id))
-            ->has('participants', '=', 2)
-            ->with(['participants' => function($q) use ($initiator) {
-                $q->where('user_id', $initiator->id);
-            }])
+            ->withCount('participants')
+            ->having('participants_count', 2)
+            ->with('lastMessage:id,content,created_at')
             ->first();
     }
 

@@ -13,16 +13,10 @@ class ConversationService
         return $user->activeConversations()
             ->with([
                 'participants.user:id,name,tag',
-                'lastMessage:id,content,created_at,conversation_id'
+                'lastMessage:id,content,created_at'
             ])
             ->latest('updated_at')
-            ->get()
-            ->map(function ($conversation) use ($user) {
-                $conversation->other_participant = $conversation->participants
-                    ->where('user_id', '!=', $user->id)
-                    ->first();
-                return $conversation;
-            });
+            ->get();
     }
 
     public function createPrivateConversation(User $initiator, User $other, bool $should_join_now): Conversation

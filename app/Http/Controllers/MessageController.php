@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreMessageRequest;
+use App\Http\Resources\ConversationResource;
 use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
 use Illuminate\Http\Request;
@@ -24,7 +25,7 @@ class MessageController extends Controller
         return MessageResource::collection($messages);
     }
 
-    public function storeMessage(StoreMessageRequest $request, Conversation $conversation): JsonResponse
+    public function store(StoreMessageRequest $request, Conversation $conversation): JsonResponse
     {
         $message = $this->messageService->storeMessage(
             $conversation,
@@ -34,7 +35,10 @@ class MessageController extends Controller
 
         return response()->json([
             'message' => 'Message sent successfully',
-            'data' => new MessageResource($message->load('user'))
+            'data' => [
+                'message' => new MessageResource($message->load('user')),
+                'conversation' => new ConversationResource($conversation)
+            ] 
         ], 201);
     }
 

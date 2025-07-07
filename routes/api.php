@@ -34,11 +34,12 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
     Route::prefix('conversations')->group(function () {
         Route::get('/', [ConversationController::class, 'index'])->name('conversation.index');
+        Route::get('/private/{tag}', [ConversationController::class, 'show'])->name('conversation.private.show');
         Route::post('/private', [ConversationController::class, 'createPrivateConversation'])->name('conversation.private');
         Route::post('/group', [ConversationController::class, 'createGroupConversation'])->name('conversation.group');
 
         Route::get('/{conversation:id}/messages', [MessageController::class, 'index'])->name('conversation.messages.index');
-        Route::post('/{conversation:id}/messages', [MessageController::class, 'storeMessage'])->name('conversation.messages.store');
+        Route::post('/{conversation:id}/messages', [MessageController::class, 'store'])->name('conversation.messages.store');
     });
 });
 

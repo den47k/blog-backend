@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\ResendVerificationRequest;
 use App\Services\VerificationService;
 use Illuminate\Http\Request;
