@@ -25,8 +25,18 @@ class ConversationService
             $existingConversation = Conversation::findExistingConversation($initiator, $other);
 
             if ($existingConversation) {
-                if ($should_join_now && $existingConversation->participants->isNotEmpty()) {
-                    $existingConversation->participants[0]->update(['joined_at' => now()]);
+                // if ($should_join_now && $existingConversation->participants->isNotEmpty()) {
+                //     $existingConversation->participants[0]->update(['joined_at' => now()]);
+                // }
+
+                if ($should_join_now) {
+                    $participant = $existingConversation->participants()
+                        ->where('user_id', $initiator->id)
+                        ->first();
+
+                    if ($participant) {
+                        $participant->update(['joined_aat' => now()]);
+                    }
                 }
                 return $existingConversation;
             }

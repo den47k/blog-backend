@@ -36,11 +36,15 @@ class MessageController extends Controller
         return response()->json([
             'message' => 'Message sent successfully',
             'data' => [
-                'message' => new MessageResource($message->load('user')),
+                'message' => new MessageResource($message->load(['user', 'recipients'])),
                 'conversation' => new ConversationResource($conversation)
             ] 
         ], 201);
     }
 
-    // public function markAsRead() {} ToDO
+    public function markAsRead(Request $request, Conversation $conversation): JsonResponse
+    {
+        $this->messageService->markMessagesAsRead($conversation, $request->user());
+        return response()->json(['message' => 'Message marked as read']);
+    }
 }
