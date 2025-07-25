@@ -6,7 +6,6 @@ use App\Models\Participant;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Log;
 
 class ConversationResource extends JsonResource
 {
@@ -14,22 +13,25 @@ class ConversationResource extends JsonResource
     {
         $currentUser = $request->user();
         $isGroup = $this->conversation_type === 'group';
+        $otherParticipant = $this->getOtherParticipant($currentUser);
 
         return [
             'id' => $this->id,
-            'userTag' => $this->when(!$isGroup, $this->getOtherParticipant($currentUser)?->user->tag),
+            'userTag' => $this->when(!$isGroup, $otherParticipant?->user->tag),
             'title' => $isGroup
                 ? $this->title
-                : $this->getOtherParticipant($currentUser)?->user->name ?? 'Unknown User',
+                : $otherParticipant?->user->name ?? 'Unknown User',
             'description' => $this->when($isGroup, $this->description),
             'lastMessage' => $this->getLastMessageContent(),
-            'timestamp' => $this->getLastMessageTimestamp(),
-            'unread' => 0, // Placeholder for future implementation
-            'avatar' => '',
-            'online' => null,
-            'isGroup' => $isGroup,
-            'createdAt' => (string) $this->created_at,
-            'updatedAt' => (string) $this->updated_at,
+            'lastMessageTimestamp' => $this->getLastMessageTimestamp(),
+            'unread' => 0, // ToDo: Implement unread count
+            'avatar' => '', // ToDo: Implement avatar logic
+            'type' => $this->conversation_type,
+            'participants' => UserResource::collection(
+                $this->participants->loadMissing('user')->pluck('user')
+            ),
+            'createdAt' => $this->created_at->toIso8601String(),
+            'updatedAt' => $this->updated_at->toIso8601String(),
         ];
     }
 
@@ -49,8 +51,9 @@ class ConversationResource extends JsonResource
 
     protected function getLastMessageTimestamp(): string
     {
-        return $this->relationLoaded('lastMessage')
-            ? (string) ($this->lastMessage->created_at ?? $this->updated_at)
-            : (string) $this->updated_at;
+        if ($this->relationLoaded('lastMessage') && $this->lastMessage) {
+            return $this->lastMessage->created_at->toIso8601String();
+        }
+        return $this->updated_at->toIso8601String();
     }
 }

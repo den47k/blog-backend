@@ -7,17 +7,14 @@ use App\Http\Resources\ConversationResource;
 use App\Models\Conversation;
 use App\Models\User;
 use App\Services\ConversationService;
-use App\Services\UserStatusService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Support\Facades\Log;
 
 class ConversationController extends Controller
 {
     public function __construct(
         private ConversationService $conversationService,
-        private UserStatusService $userStatusService
     ) {}
 
     public function index(Request $request): AnonymousResourceCollection
@@ -32,12 +29,8 @@ class ConversationController extends Controller
         $targetUser = User::where('tag', $tag)->firstOrFail();
         $conversation = Conversation::findExistingConversation($request->user(), $targetUser);
 
-        $lastSeenAt = $this->userStatusService->getLastSeenAt($targetUser->id);
-
         abort_unless($conversation, 404, 'Conversation not found');
-        return (new ConversationResource($conversation))->additional([
-            'lastSeenAt' => $lastSeenAt?->toIso8601String()
-        ]);
+        return new ConversationResource($conversation);
     }
 
     public function createPrivateConversation(CreatePrivateConversationRequest $request): JsonResponse
