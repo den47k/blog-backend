@@ -50,15 +50,15 @@ class MessageService
         });
     }
 
-    public function markMessagesAsRead(Conversation $conversation, User $user):void
-    {
-        DB::table('message_user')
-            ->where('user_id', $user->id)
-            ->whereIn('message_id', $conversation->messages()->pluck('id'))
-            ->where('status', 'sent')
-            ->update([
-                'status' => 'read',
-                'read_at' => now()
-            ]);
-    }
+    // public function markMessagesAsRead(Conversation $conversation, User $user):void
+    // {
+    //     DB::table('message_user')
+    //         ->where('user_id', $user->id)
+    //         ->whereIn('message_id', $conversation->messages()->pluck('id'))
+    //         ->where('status', 'sent')
+    //         ->update([
+    //             'status' => 'read',
+    //             'read_at' => now()
+    //         ]);
+    // }
 }

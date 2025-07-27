@@ -11,8 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 
-/* Auth routes */
-
+/* Guest routes */
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -29,6 +28,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 });
 
+/* Auth */
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/users/search', [UserController::class, 'search'])->name('users.search');
 
@@ -40,10 +40,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
         Route::get('/{conversation:id}/messages', [MessageController::class, 'index'])->name('conversation.messages.index');
         Route::post('/{conversation:id}/messages', [MessageController::class, 'store'])->name('conversation.messages.store');
-        Route::post('/{conversation:id}/messages/mark-read', [MessageController::class, 'markAsRead'])->name('conversation.messages.markAsRead');
+        Route::post('/{conversation:id}/mark-read', [ConversationController::class, 'markAsRead'])->name('conversation.markAsRead');
     });
 });
-
 
 
 /* Test routes */

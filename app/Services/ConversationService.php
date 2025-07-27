@@ -54,4 +54,11 @@ class ConversationService
     }
 
     // public function createGroupConversation(): Conversation {}
+
+    public function markConversationAsRead(Conversation $conversation, User $user): void
+    {
+        $participant = $conversation->participants()->where('user_id', $user->id)->first();
+        
+        if ($participant) $participant->update(['last_read_at' => now()]);
+    }
 }

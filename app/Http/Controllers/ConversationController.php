@@ -55,4 +55,11 @@ class ConversationController extends Controller
     {
         return response()->json([], 201);
     }
+
+    public function markAsRead(Request $request, Conversation $conversation): JsonResponse
+    {
+            $this->ConversationService->markConversationAsRead($conversation, $request->user());
+
+            return response()->json(['message' => 'Conversation marked as read.']);
+    }
 }

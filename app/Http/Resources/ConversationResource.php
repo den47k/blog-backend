@@ -13,7 +13,9 @@ class ConversationResource extends JsonResource
     {
         $currentUser = $request->user();
         $isGroup = $this->conversation_type === 'group';
+        $currentParticipant = $this->participants->where('user_id', $currentUser->id)->first();
         $otherParticipant = $this->getOtherParticipant($currentUser);
+        $lastReadAt = $currentParticipant?->last_read_at;
 
         return [
             'id' => $this->id,
@@ -24,7 +26,9 @@ class ConversationResource extends JsonResource
             'description' => $this->when($isGroup, $this->description),
             'lastMessage' => $this->getLastMessageContent(),
             'lastMessageTimestamp' => $this->getLastMessageTimestamp(),
-            'unread' => 0, // ToDo: Implement unread count
+            'hasUnread' => $this->when($lastReadAt, function () use ($lastReadAt) {
+                return $this->updated_at->gt($lastReadAt);
+            }, fn () => $this->last_message_id !== null),
             'avatar' => '', // ToDo: Implement avatar logic
             'type' => $this->conversation_type,
             'participants' => UserResource::collection(

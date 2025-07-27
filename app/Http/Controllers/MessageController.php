@@ -42,9 +42,9 @@ class MessageController extends Controller
         ], 201);
     }
 
-    public function markAsRead(Request $request, Conversation $conversation): JsonResponse
-    {
-        $this->messageService->markMessagesAsRead($conversation, $request->user());
-        return response()->json(['message' => 'Message marked as read']);
-    }
+    // public function markAsRead(Request $request, Conversation $conversation): JsonResponse
+    // {
+    //     $this->messageService->markMessagesAsRead($conversation, $request->user());
+    //     return response()->json(['message' => 'Message marked as read']);
+    // }
 }
