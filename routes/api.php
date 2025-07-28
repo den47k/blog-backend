@@ -40,7 +40,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
         Route::get('/{conversation:id}/messages', [MessageController::class, 'index'])->name('conversation.messages.index');
         Route::post('/{conversation:id}/messages', [MessageController::class, 'store'])->name('conversation.messages.store');
-        Route::post('/{conversation:id}/mark-read', [ConversationController::class, 'markAsRead'])->name('conversation.markAsRead');
+        Route::post('/{conversation:id}/mark-as-read', [ConversationController::class, 'markAsRead'])->name('conversation.markAsRead');
     });
 });
 

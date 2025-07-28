@@ -4,6 +4,10 @@ use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
 
+Broadcast::channel('App.Models.User.{userId}', function (User $user, $userId) {
+    return (int) $user->id === (int) $userId;
+});
+
 Broadcast::channel('user.{userId}', function (User $user, $userId) {
     return (int) $user->id === (int) $userId;
 });

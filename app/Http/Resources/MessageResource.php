@@ -16,7 +16,6 @@ class MessageResource extends JsonResource
             'conversationId' => $this->conversation_id,
             'senderId' => $this->user_id,
             'createdAt' => $this->created_at->toISOString(),
-            'status' => $this->getStatusForUser($request->user()),
             'sender' => $this->whenLoaded('user', fn () => [
                 'id' => $this->user->id,
                 'name' => $this->user->name,
@@ -24,13 +23,5 @@ class MessageResource extends JsonResource
                 'avatar' => $this->user->avatar,
             ]),
         ];
-    }
-
-    private function getStatusForUser(User $user)
-    {
-        if (!$this->relationLoaded('recipients')) return null;
-
-        $recipient = $this->recipients->firstWhere('id', '!=', $user->id);
-        return $recipient ? $recipient->pivot->status : null;
     }
 }
