@@ -10,10 +10,6 @@ class StoreMessageRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
-
-        // ToDo
-        // $conversation = $this->route('conversation');
-        // Gate::allows('view', $conversation);
     }
 
     public function rules(): array

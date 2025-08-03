@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DeleteMessageRequest;
 use App\Http\Requests\StoreMessageRequest;
+use App\Http\Requests\UpdateMessageRequest;
 use App\Http\Resources\ConversationResource;
 use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
+use App\Models\Message;
 use Illuminate\Http\Request;
 use App\Services\MessageService;
 use Illuminate\Http\JsonResponse;
@@ -18,7 +21,7 @@ class MessageController extends Controller
 
     public function index(Request $request, Conversation $conversation): AnonymousResourceCollection
     {
-        // Gate::authorize('view', $conversation); ToDo
+        Gate::authorize('view', $conversation);
 
         $messages = $this->messageService->getMessagesForConversation($conversation);
 
@@ -27,6 +30,8 @@ class MessageController extends Controller
 
     public function store(StoreMessageRequest $request, Conversation $conversation): JsonResponse
     {
+        Gate::authorize('view', $conversation);
+
         $message = $this->messageService->storeMessage(
             $conversation,
             $request->user(),
@@ -42,9 +47,25 @@ class MessageController extends Controller
         ], 201);
     }
 
-    // public function markAsRead(Request $request, Conversation $conversation): JsonResponse
-    // {
-    //     $this->messageService->markMessagesAsRead($conversation, $request->user());
-    //     return response()->json(['message' => 'Message marked as read']);
-    // }
+    public function update(UpdateMessageRequest $request, Conversation $conversation, Message $message): JsonResponse
+    {
+        Gate::authorize('update', $conversation);
+
+        $message = $this->messageService->updateMessage(
+            $message,
+            $request->validated()
+        );
+
+        return response()->json([
+            'message' => 'Message updated successfully',
+            'data' => new MessageResource($message->load(['user', 'recipients']))
+        ]);
+    }
+
+    public function delete(Request $request, Conversation $conversation, Message $message): JsonResponse
+    {
+        Gate::authorize('delete', $conversation);
+        $this->messageService->deleteMessage($conversation, $message);
+        return response()->json(['message' => 'Message deleted successfully']);
+    }
 }

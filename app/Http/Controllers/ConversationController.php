@@ -10,6 +10,7 @@ use App\Services\ConversationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Gate;
 
 class ConversationController extends Controller
 {
@@ -30,6 +31,8 @@ class ConversationController extends Controller
         $conversation = Conversation::findExistingConversation($request->user(), $targetUser);
 
         abort_unless($conversation, 404, 'Conversation not found');
+        Gate::authorize('view', $conversation);
+
         return new ConversationResource($conversation);
     }
 
@@ -51,15 +54,17 @@ class ConversationController extends Controller
         ], 201);
     }
 
-    public function createGroupConversation(): JsonResponse
-    {
-        return response()->json([], 201);
-    }
+    // public function createGroupConversation(): JsonResponse
+    // {
+    //     return response()->json([], 201);
+    // }
 
     public function markAsRead(Request $request, Conversation $conversation): JsonResponse
     {
-            $this->conversationService->markConversationAsRead($conversation, $request->user());
+        Gate::authorize('markAsRead', $conversation);
 
-            return response()->json(['message' => 'Conversation marked as read.']);
+        $this->conversationService->markConversationAsRead($conversation, $request->user());
+
+        return response()->json(['message' => 'Conversation marked as read.']);
     }
 }

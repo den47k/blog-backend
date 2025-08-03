@@ -4,17 +4,17 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class CreateGroupConversationRequest extends FormRequest
+class UpdateMessageRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     public function rules(): array
     {
         return [
-            //
+            'content' => ['required', 'string', 'max:5000']
         ];
     }
 }

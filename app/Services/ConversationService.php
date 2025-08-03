@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
 
 class ConversationService
 {
@@ -57,8 +58,9 @@ class ConversationService
 
     public function markConversationAsRead(Conversation $conversation, User $user): void
     {
-        $participant = $conversation->participants()->where('user_id', $user->id)->first();
-        
-        if ($participant) $participant->update(['last_read_at' => now()]);
+        $key = "user:{$user->id}:last_read";
+        $field = "conversation:{$conversation->id}";
+
+        Redis::hset($key, $field, now()->timestamp);
     }
 }

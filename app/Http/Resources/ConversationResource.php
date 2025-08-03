@@ -4,8 +4,10 @@ namespace App\Http\Resources;
 
 use App\Models\Participant;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Redis;
 
 class ConversationResource extends JsonResource
 {
@@ -15,7 +17,7 @@ class ConversationResource extends JsonResource
         $isGroup = $this->conversation_type === 'group';
         $currentParticipant = $this->participants->where('user_id', $currentUser->id)->first();
         $otherParticipant = $this->getOtherParticipant($currentUser);
-        $lastReadAt = $currentParticipant?->last_read_at;
+        $lastReadAt = $this->getLastReadAt($currentUser, $this->id);
 
         return [
             'id' => $this->id,
@@ -26,9 +28,7 @@ class ConversationResource extends JsonResource
             'description' => $this->when($isGroup, $this->description),
             'lastMessage' => $this->getLastMessageContent(),
             'lastMessageTimestamp' => $this->getLastMessageTimestamp(),
-            'hasUnread' => $this->when($lastReadAt, function () use ($lastReadAt) {
-                return $this->updated_at->gt($lastReadAt);
-            }, fn () => $this->last_message_id !== null),
+            'hasUnread' => $this->hasUnreadMessages($lastReadAt),
             'avatar' => '', // ToDo: Implement avatar logic
             'type' => $this->conversation_type,
             'participants' => UserResource::collection(
@@ -59,5 +59,18 @@ class ConversationResource extends JsonResource
             return $this->lastMessage->created_at->toIso8601String();
         }
         return $this->updated_at->toIso8601String();
+    }
+
+    protected function getLastReadAt(User $user, string $conversationId): ?Carbon
+    {
+        $timestamp = Redis::hget("user:{$user->id}:last_read", "conversation:{$conversationId}");
+        return $timestamp ? Carbon::createFromTimestamp($timestamp) : null;
+    }
+
+    protected function hasUnreadMessages(?Carbon $lastReadAt): bool
+    {
+        return $lastReadAt
+            ? $this->updated_at->gt($lastReadAt)
+            : $this->last_message_id !== null;
     }
 }

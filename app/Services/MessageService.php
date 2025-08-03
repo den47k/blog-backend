@@ -2,11 +2,12 @@
 
 namespace App\Services;
 
+use App\Events\MessageDeleted;
 use App\Events\MessageSent;
+use App\Events\NewMessageNotification;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
-use App\Notifications\NewMessageNotification;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -36,11 +37,45 @@ class MessageService
             broadcast(new MessageSent($message->load('user')))->toOthers();
 
             $participants = $conversation->participants->where('user_id', '!=', $user->id)->pluck('user');
+            // foreach ($participants as $participant) {
+            //     $participant->notify(new NewMessageNotification($message));
+            // }
+
             foreach ($participants as $participant) {
-                $participant->notify(new NewMessageNotification($message));
+                broadcast(new NewMessageNotification($message, $participant));
             }
 
             return $message;
+        });
+    }
+
+    public function updateMessage(Message $message, array $data)
+    {
+        return DB::transaction(function () use ($message, $data) {
+            $message->update([
+                'content' => $data['content'],
+                'edited_at' => now()
+            ]);
+
+            return $message;
+        });
+    }
+
+    public function deleteMessage(Conversation $conversation, Message $message)
+    {
+        DB::transaction(function () use ($conversation, $message) {
+            $wasLastMessage = $conversation->last_message_id === $message->id;
+
+            $message->delete();
+
+            if ($wasLastMessage) {
+                $lastMessage = $conversation->messages()->latest()->first();
+                $conversation->update([
+                    'last_message_id' => $lastMessage?->id,
+                ]);
+            }
+
+            // broadcast(new MessageDeleted($message->load('user')))->toOthers(); ToDo
         });
     }
 }
