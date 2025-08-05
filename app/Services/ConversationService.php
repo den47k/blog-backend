@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Redis;
 
 class ConversationService
 {
+    private const REDIS_LAST_READ_PREFIX = 'user';
+    private const REDIS_CONVERSATION_PREFIX = 'conversation';
+
     public function getConversationsForUser(User $user)
     {
         return $user->activeConversations()
@@ -58,9 +61,28 @@ class ConversationService
 
     public function markConversationAsRead(Conversation $conversation, User $user): void
     {
-        $key = "user:{$user->id}:last_read";
-        $field = "conversation:{$conversation->id}";
+        Redis::hset(
+            $this->getRedisLastReadKey($user),
+            $this->getRedisConversationField($conversation),
+            now()->timestamp
+        );
+    }
 
-        Redis::hset($key, $field, now()->timestamp);
+    public function getLastReadAt(User $user, Conversation $conversation): ?int
+    {
+        return Redis::hget(
+            $this->getRedisLastReadKey($user),
+            $this->getRedisConversationField($conversation)
+        ) ?: null;
+    }
+
+    private function getRedisLastReadKey(User $user): string
+    {
+        return self::REDIS_LAST_READ_PREFIX . ":{$user->id}:last_read";
+    }
+
+    private function getRedisConversationField(Conversation $conversation): string
+    {
+        return self::REDIS_CONVERSATION_PREFIX . ":{$conversation->id}";
     }
 }

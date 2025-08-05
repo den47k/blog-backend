@@ -2,8 +2,10 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Conversation;
 use App\Models\Participant;
 use App\Models\User;
+use App\Services\ConversationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -16,7 +18,6 @@ class ConversationResource extends JsonResource
         $currentUser = $request->user();
         $isGroup = $this->conversation_type === 'group';
         $otherParticipant = $this->getOtherParticipant($currentUser);
-        $lastReadAt = $this->getLastReadAt($currentUser, $this->id);
 
         return [
             'id' => $this->id,
@@ -25,10 +26,8 @@ class ConversationResource extends JsonResource
                 ? $this->title
                 : $otherParticipant?->user->name ?? 'Unknown User',
             'description' => $this->when($isGroup, $this->description),
-            // 'lastMessage' => $this->getLastMessageContent(),
-            // 'lastMessageTimestamp' => $this->getLastMessageTimestamp(),
             'lastMessage' => new MessageResource($this->whenLoaded('lastMessage')),
-            'hasUnread' => $this->hasUnreadMessages($lastReadAt),
+            'hasUnread' => $this->hasUnreadMessages($currentUser, $this->resource),
             'avatar' => '', // ToDo: Implement avatar logic
             'type' => $this->conversation_type,
             'participants' => UserResource::collection(
@@ -61,14 +60,11 @@ class ConversationResource extends JsonResource
         return $this->updated_at->toIso8601String();
     }
 
-    protected function getLastReadAt(User $user, string $conversationId): ?Carbon
+    protected function hasUnreadMessages(User $user, Conversation $conversation): bool
     {
-        $timestamp = Redis::hget("user:{$user->id}:last_read", "conversation:{$conversationId}");
-        return $timestamp ? Carbon::createFromTimestamp($timestamp) : null;
-    }
+        $service = app(ConversationService::class);
+        $lastReadAt = $service->getLastReadAt($user, $conversation);
 
-    protected function hasUnreadMessages(?Carbon $lastReadAt): bool
-    {
         return $lastReadAt
             ? $this->updated_at->gt($lastReadAt)
             : $this->last_message_id !== null;

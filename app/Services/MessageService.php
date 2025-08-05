@@ -7,10 +7,7 @@ use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Notification;
 
 class MessageService
 {
@@ -32,6 +29,9 @@ class MessageService
 
             $conversation->update(['last_message_id' => $message->id]);
             $conversation->participants()->whereNull('joined_at')->update(['joined_at' => now()]);
+
+            $conversationService = app(ConversationService::class);
+            $conversationService->markConversationAsRead($conversation, $user);
 
             $recipients = $conversation->participants->where('user_id', '!=', $user->id)->pluck('user');
             broadcast(new MessageEvent('create', $message->load('user'), $recipients->all()))->toOthers();
