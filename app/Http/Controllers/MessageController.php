@@ -49,7 +49,7 @@ class MessageController extends Controller
 
     public function update(UpdateMessageRequest $request, Conversation $conversation, Message $message): JsonResponse
     {
-        Gate::authorize('update', $conversation);
+        Gate::authorize('update', $message);
 
         $message = $this->messageService->updateMessage(
             $message,
@@ -58,14 +58,19 @@ class MessageController extends Controller
 
         return response()->json([
             'message' => 'Message updated successfully',
-            'data' => new MessageResource($message->load(['user', 'recipients']))
+            'data' => new MessageResource($message->load(['user', 'recipients'])),
         ]);
     }
 
     public function delete(Request $request, Conversation $conversation, Message $message): JsonResponse
     {
-        Gate::authorize('delete', $conversation);
-        $this->messageService->deleteMessage($conversation, $message);
-        return response()->json(['message' => 'Message deleted successfully']);
+        Gate::authorize('delete', $message);
+
+        $data = $this->messageService->deleteMessage($conversation, $message);
+        
+        return response()->json([
+            'message' => 'Message deleted successfully',
+            ...$data,
+        ]);
     }
 }

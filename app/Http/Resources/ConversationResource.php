@@ -15,7 +15,6 @@ class ConversationResource extends JsonResource
     {
         $currentUser = $request->user();
         $isGroup = $this->conversation_type === 'group';
-        $currentParticipant = $this->participants->where('user_id', $currentUser->id)->first();
         $otherParticipant = $this->getOtherParticipant($currentUser);
         $lastReadAt = $this->getLastReadAt($currentUser, $this->id);
 
@@ -26,8 +25,9 @@ class ConversationResource extends JsonResource
                 ? $this->title
                 : $otherParticipant?->user->name ?? 'Unknown User',
             'description' => $this->when($isGroup, $this->description),
-            'lastMessage' => $this->getLastMessageContent(),
-            'lastMessageTimestamp' => $this->getLastMessageTimestamp(),
+            // 'lastMessage' => $this->getLastMessageContent(),
+            // 'lastMessageTimestamp' => $this->getLastMessageTimestamp(),
+            'lastMessage' => new MessageResource($this->whenLoaded('lastMessage')),
             'hasUnread' => $this->hasUnreadMessages($lastReadAt),
             'avatar' => '', // ToDo: Implement avatar logic
             'type' => $this->conversation_type,

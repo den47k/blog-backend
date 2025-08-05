@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignUuid('user_id')->constrained()->cascadeOnDelete();
             $table->enum('role', ['member', 'admin', 'owner'])->default('member');
             $table->timestamp('joined_at')->nullable()->useCurrent();
-            $table->timestamp('last_read_at')->nullable();
+            // $table->timestamp('last_read_at')->nullable();
             $table->boolean('is_muted')->default(false);
             $table->boolean('is_banned')->default(false);
             $table->timestamps();

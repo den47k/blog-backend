@@ -2,9 +2,8 @@
 
 namespace App\Services;
 
-use App\Events\MessageDeleted;
-use App\Events\MessageSent;
-use App\Events\NewMessageNotification;
+use App\Events\MessageEvent;
+use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
@@ -34,16 +33,8 @@ class MessageService
             $conversation->update(['last_message_id' => $message->id]);
             $conversation->participants()->whereNull('joined_at')->update(['joined_at' => now()]);
 
-            broadcast(new MessageSent($message->load('user')))->toOthers();
-
-            $participants = $conversation->participants->where('user_id', '!=', $user->id)->pluck('user');
-            // foreach ($participants as $participant) {
-            //     $participant->notify(new NewMessageNotification($message));
-            // }
-
-            foreach ($participants as $participant) {
-                broadcast(new NewMessageNotification($message, $participant));
-            }
+            $recipients = $conversation->participants->where('user_id', '!=', $user->id)->pluck('user');
+            broadcast(new MessageEvent('create', $message->load('user'), $recipients->all()))->toOthers();
 
             return $message;
         });
@@ -57,25 +48,54 @@ class MessageService
                 'edited_at' => now()
             ]);
 
+            $conversation = $message->conversation;
+            $recipients = $conversation->participants->where('user_id', '!=', $message->user_id)->pluck('user');
+
+            broadcast(new MessageEvent('update', $message->load('user'), $recipients->all()))->toOthers();
+
             return $message;
         });
     }
 
     public function deleteMessage(Conversation $conversation, Message $message)
     {
-        DB::transaction(function () use ($conversation, $message) {
+        return DB::transaction(function () use ($conversation, $message) {
             $wasLastMessage = $conversation->last_message_id === $message->id;
-
-            $message->delete();
+            $messageId = $message->id;
+            $newLastMessage = null;
 
             if ($wasLastMessage) {
-                $lastMessage = $conversation->messages()->latest()->first();
+                $newLastMessage = $conversation->messages()
+                    ->where('id', '!=', $message->id)
+                    ->latest()
+                    ->first();
+
                 $conversation->update([
-                    'last_message_id' => $lastMessage?->id,
+                    'last_message_id' => $newLastMessage?->id,
                 ]);
             }
 
-            // broadcast(new MessageDeleted($message->load('user')))->toOthers(); ToDo
+            $message->delete();
+
+            $recipients = $conversation->participants
+                ->where('user_id', '!=', $message->user_id)
+                ->pluck('user');
+
+            broadcast(new MessageEvent(
+                'delete',
+                $message,
+                $recipients->all(),
+                $wasLastMessage,
+                $newLastMessage
+            ))->toOthers();
+
+            return [
+                'deletedId' => $messageId,
+                'wasLastMessage' => $wasLastMessage,
+                'newLastMessage' => $newLastMessage
+                    ? new MessageResource($newLastMessage)
+                    : null
+            ];
         });
     }
 }

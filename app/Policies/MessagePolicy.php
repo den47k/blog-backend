@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\Message;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
+use Illuminate\Support\Facades\Log;
 
 class MessagePolicy
 {
@@ -20,6 +21,7 @@ class MessagePolicy
 
     public function delete(User $user, Message $message): bool
     {
+        Log::info($user);
         return $user->id === $message->user_id;
     }
 }
