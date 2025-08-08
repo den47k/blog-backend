@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 
 class UserResource extends JsonResource
@@ -16,22 +17,17 @@ class UserResource extends JsonResource
             'tag' => $this->tag,
             'email' => $this->email,
             'avatar' => $this->avatar ? [
-                'original' => route('api.storage', ['path' => $this->avatar['original']]),
-                'medium' => route('api.storage', ['path' => $this->avatar['medium']]),
-                'small' => route('api.storage', ['path' => $this->avatar['small']])
+                'original' => $this->publicAvatarUrl($this->avatar['original']),
+                'medium'   => $this->publicAvatarUrl($this->avatar['medium']),
+                'small'    => $this->publicAvatarUrl($this->avatar['small']),
             ] : null,
-            // 'avatar' => $this->avatar ? [
-            //     'original' => Storage::temporaryUrl($this->avatar['original'], now()->addMinutes(15)),
-            //     'medium' => Storage::temporaryUrl($this->avatar['medium'], now()->addMinutes(15)),
-            //     'small' => Storage::temporaryUrl($this->avatar['small'], now()->addMinutes(15)),
-            // ] : null,
-
-            // 'avatar' => $this->avatar ? [
-            //     'original' => Storage::disk('s3')->temporaryUrl($this->avatar['original'], now()->addMinutes(15)),
-            //     'medium' => Storage::disk('s3')->temporaryUrl($this->avatar['medium'], now()->addMinutes(15)),
-            //     'small' => Storage::disk('s3')->temporaryUrl($this->avatar['small'], now()->addMinutes(15)),
-            // ] : null,
             'isEmailVerified' => (bool) $this->email_verified_at,
         ];
+    }
+
+    private function publicAvatarUrl(string $path): string
+    {
+        $baseUrl = rtrim(Config::get('filesystems.disks.s3.url'), '/');
+        return "{$baseUrl}/{$path}";
     }
 }

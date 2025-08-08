@@ -68,12 +68,14 @@ class ConversationService
         );
     }
 
-    public function getLastReadAt(User $user, Conversation $conversation): ?int
+    public function getLastReadAt(User $user, Conversation $conversation)
     {
-        return Redis::hget(
+        $timestamp = Redis::hget(
             $this->getRedisLastReadKey($user),
             $this->getRedisConversationField($conversation)
-        ) ?: null;
+        );
+
+        return $timestamp ? \Carbon\Carbon::createFromTimestamp($timestamp) : null;
     }
 
     private function getRedisLastReadKey(User $user): string

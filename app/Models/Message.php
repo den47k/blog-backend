@@ -53,6 +53,6 @@ class Message extends Model
     {
         return $this->belongsToMany(User::class)
             ->using(MessageUser::class)
-            ->withPivot('status', 'read_at');
+            ->withPivot('read_at');
     }
 }

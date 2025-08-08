@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    abort(403);
+    return view('welcome');
 });
 
 Route::get('/test', function () {
