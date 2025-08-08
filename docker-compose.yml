@@ -79,6 +79,7 @@ services:
             - 'sail-minio:/data'
         networks:
             - sail
+            - blog-network
         command: 'minio server /data --console-address ":8900"'
         healthcheck:
             test:

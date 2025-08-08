@@ -9,10 +9,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Traits\Traits\HasProfilePhoto;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasUuids, HasFactory, Notifiable;
+    use HasUuids, HasFactory, Notifiable, HasProfilePhoto;
 
     // Model attribute configuration
     protected $fillable = [
@@ -32,6 +33,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'avatar' => 'array',
         ];
     }
 

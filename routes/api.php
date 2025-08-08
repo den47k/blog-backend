@@ -8,8 +8,9 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
-
+use Illuminate\Support\Facades\Storage;
 
 /* Guest routes */
 Route::post('/register', [AuthController::class, 'register']);
@@ -30,8 +31,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 /* Auth */
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
-    Route::get('/users/search', [UserController::class, 'search'])->name('users.search');
-
+    Route::prefix('users')->group(function () {
+        Route::get('/search', [UserController::class, 'search'])->name('users.search');
+        Route::post('/{user}/avatar', [UserController::class, 'uploadAvatar'])->name('users.uploadAvatar');
+        Route::delete('/{user}/avatar', [UserController::class, 'deleteAvatar'])->name('users.deleteAvatar');
+    });
+    
     Route::prefix('conversations')->group(function () {
         Route::get('/', [ConversationController::class, 'index'])->name('conversation.index');
         Route::get('/private/{tag}', [ConversationController::class, 'show'])->name('conversation.private.show');
@@ -61,3 +66,34 @@ Route::post('/test', function () {
         'time' => now()->toDateTimeString()
     ]);
 });
+
+
+// Route::get('/storage/{path}', function ($path) {
+//     if (!Storage::disk('s3')->exists($path)) {
+//         abort(404);
+//     }
+
+//     return response(
+//         Storage::disk('s3')->get($path),
+//         200,
+//         ['Content-Type' => Storage::disk('s3')->mimeType($path)]
+//     );
+// })->where('path', '.*')->name('api.storage');
+
+
+// Route::get('/storage/{path}', function ($path) {
+//     if (!Storage::disk('s3')->exists($path)) {
+//         abort(404);
+//     }
+
+//     $temp = Storage::disk('s3')->temporaryUrl($path, now()->addMinutes(5));
+//     Log::info($temp);
+
+//     return response()->stream(function () use ($path) {
+//         $stream = Storage::disk('s3')->readStream($path);
+//         fpassthru($stream);
+//         fclose($stream);
+//     }, 200, [
+//         'Content-Type' => Storage::disk('s3')->mimeType($path),
+//     ]);
+// })->where('path', '.*')->name('api.storage');
