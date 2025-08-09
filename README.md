@@ -4,6 +4,8 @@ This is the **Laravel 12** backend for a real-time chat application.
 It supports **private conversations**, **file attachments**, and **real-time messaging** powered by **Laravel Reverb** and **WebSockets**.  
 The backend also integrates **MinIO** for object storage (user avatars, attachments) and **Redis** for caching/presence.
 
+**Frontend Repository:** [Whisp Frontend](https://github.com/den47k/blog-frontend)
+
 ---
 
 ## Features
