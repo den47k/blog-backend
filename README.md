@@ -6,7 +6,7 @@ The backend also integrates **MinIO** for object storage (user avatars, attachme
 
 ---
 
-## 🚀 Features
+## Features
 
 - **Private conversations** between users.
 - **File attachments** in messages (images, documents, etc.).
@@ -18,7 +18,7 @@ The backend also integrates **MinIO** for object storage (user avatars, attachme
 
 ---
 
-## 📦 Requirements
+## Requirements
 
 - **Docker & Docker Compose**
 - **PHP 8.2+** (if running without Docker)
@@ -26,7 +26,7 @@ The backend also integrates **MinIO** for object storage (user avatars, attachme
 
 ---
 
-## ⚙️ Installation
+## Installation
 
 1. **Clone the repository**
 
@@ -73,14 +73,14 @@ The backend also integrates **MinIO** for object storage (user avatars, attachme
 
 ---
 
-## 🔒 Authentication
+## Authentication
 
 **Laravel Sanctum** was used for SPA token-based authentication.  
 CORS is configured for the frontend domain.
 
 ---
 
-## 🗂️ File Storage
+## File Storage
 
 **MinIO** is used as S3-compatible storage.
     
