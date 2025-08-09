@@ -18,32 +18,6 @@ class AttachmentsService
         $this->imageManager = new ImageManager(new Driver());
     }
 
-    // public function storeAvatar(UploadedFile $file, string $userId)
-    // {
-    //     $path = "avatars/{$userId}";
-
-    //     $originalPath = $this->disk->putFile($path, $file, [
-    //         'visibility' => 'private',
-    //         'name' => "original." . $file->extension()
-    //     ]);
-
-    //     $medium = $this->imageManager->read($file->getRealPath())
-    //         ->resize(300, 300)
-    //         ->toJpeg();
-    //     $this->disk->put("{$path}/medium.jpg", $medium->toString());
-
-    //     $small = $this->imageManager->read($file->getRealPath())
-    //         ->resize(100, 100)
-    //         ->toJpeg();
-    //     $this->disk->put("{$path}/small.jpg", $small->toString());
-
-    //     return [
-    //         'original' => $originalPath,
-    //         'medium' => "{$path}/medium.jpg",
-    //         'small' => "{$path}/small.jpg"
-    //     ];
-    // }
-
     public function storeAttachment(UploadedFile $file, string $conversationId, string $messageId)
     {
         $path = "attachments/{$conversationId}/{$messageId}";
