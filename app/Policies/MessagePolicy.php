@@ -21,7 +21,6 @@ class MessagePolicy
 
     public function delete(User $user, Message $message): bool
     {
-        Log::info($user);
         return $user->id === $message->user_id;
     }
 }

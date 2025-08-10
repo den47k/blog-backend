@@ -9,6 +9,20 @@ use Intervention\Image\ImageManager;
 
 trait HasProfilePhoto
 {
+    public function updateAvatar(?UploadedFile $file): ?array
+    {
+        if (!$file) return null;
+
+        $this->deleteOldAvatar();
+
+        $newPaths = $this->storeAvatar($file, $this->id);
+
+        $this->avatar = $newPaths;
+        $this->save();
+
+        return $newPaths;
+    }
+
     public function storeAvatar(UploadedFile $file, string $userId): array
     {
         $disk = Storage::disk('s3');
@@ -34,6 +48,31 @@ trait HasProfilePhoto
             'original' => $originalPath,
             'medium' => "{$path}/medium.jpg",
             'small' => "{$path}/small.jpg"
+        ];
+    }
+
+    public function deleteOldAvatar(): void
+    {
+        if (empty($this->avatar)) {
+            return;
+        }
+
+        try {
+            $disk = Storage::disk('s3');
+            $disk->delete(array_values($this->avatar));
+        } catch (\Exception $e) {
+            \Log::error("Failed to delete old avatar for user {$this->id}: " . $e->getMessage());
+        }
+    }
+
+    public function getAvatarUrls(): ?array
+    {
+        if (empty($this->avatar)) return null;
+
+        return [
+            'original' => route('api.storage', ['path' => $this->avatar['original']]),
+            'medium' => route('api.storage', ['path' => $this->avatar['medium']]),
+            'small' => route('api.storage', ['path' => $this->avatar['small']])
         ];
     }
 }

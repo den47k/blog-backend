@@ -7,11 +7,46 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 // use App\Services\AttachmentsService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
     // public function __construct(private AttachmentsService $attachmentsService) {}
+
+    public function update(Request $request, User $user): JsonResponse
+    {
+        if (auth()->id() !== $user->id) abort(403, 'Unauthorized action');
+
+        $request->validate([
+            'name' => ['string', 'min:3', 'max:32'],
+            'avatar' => ['image', 'max:5000']
+        ]);
+
+        $response = [];
+
+        if ($request->has('name')) {
+            $user->name = $request->input('name');
+            $user->save();
+            $response['name'] = $user->name;
+        }
+
+        if ($request->hasFile('avatar')) {
+            $user->updateAvatar($request->file('avatar'));
+            $response['avatar'] = $user->getAvatarUrls();
+        }
+
+        return response()->json($response);
+    }
+
+    public function deleteAvatar(Request $request, User $user) 
+    {
+        if (auth()->id() !== $user->id) abort(403, 'Unauthorized action');
+        $user->deleteOldAvatar();
+
+        return response()->json(['message' => 'Avatar deleted successfully']);
+    }
+
 
     public function search(Request $request)
     {
@@ -32,23 +67,4 @@ class UserController extends Controller
 
         return UserResource::collection($users);
     }
-
-    public function uploadAvatar(Request $request, User $user): JsonResponse
-    {
-        $request->validate(['avatar' => ['required', 'image', 'max:5000']]);
-
-        $avatarPaths = $user->storeAvatar($request->file('avatar'), $user->id);
-        $user->avatar = $avatarPaths;
-        $user->save();
-
-        return response()->json([
-            'avatar' => [
-                'original' => route('api.storage', ['path' => $avatarPaths['original']]),
-                'medium' => route('api.storage', ['path' => $avatarPaths['medium']]),
-                'small' => route('api.storage', ['path' => $avatarPaths['small']])
-            ]
-        ]);
-    }
-
-    public function deleteAvatar(Request $request, User $user) {}
 }

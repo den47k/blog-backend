@@ -17,17 +17,16 @@ class UserResource extends JsonResource
             'tag' => $this->tag,
             'email' => $this->email,
             'avatar' => $this->avatar ? [
-                'original' => $this->publicAvatarUrl($this->avatar['original']),
-                'medium'   => $this->publicAvatarUrl($this->avatar['medium']),
-                'small'    => $this->publicAvatarUrl($this->avatar['small']),
+                'original' => $this->privateAvatarUrl($this->avatar['original']),
+                'medium'   => $this->privateAvatarUrl($this->avatar['medium']),
+                'small'    => $this->privateAvatarUrl($this->avatar['small']),
             ] : null,
             'isEmailVerified' => (bool) $this->email_verified_at,
         ];
     }
 
-    private function publicAvatarUrl(string $path): string
+    private function privateAvatarUrl(string $path): string
     {
-        $baseUrl = rtrim(Config::get('filesystems.disks.s3.url'), '/');
-        return "{$baseUrl}/{$path}";
+        return route('api.storage', ['path' => $path]);
     }
 }
