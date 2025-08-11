@@ -15,7 +15,8 @@ class StoreMessageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'content' => ['required', 'string', 'max:5000']
+            'content' => ['required_without:attachment', 'string', 'max:5000', 'prohibits:attachment'],
+            'attachment' => ['required_without:content', 'file', 'max:25600', 'prohibits:content'],
         ];
     }
 }

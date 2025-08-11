@@ -17,12 +17,14 @@ class MessageResource extends JsonResource
             'senderId' => $this->user_id,
             'editedAt' => $this->edited_at,
             'createdAt' => $this->created_at->toISOString(),
-            'sender' => $this->whenLoaded('user', fn () => [
+            'sender' => $this->whenLoaded('user', fn () => [  // ToDo: use UserResource
                 'id' => $this->user->id,
                 'name' => $this->user->name,
                 'tag' => $this->user->tag,
                 'avatar' => $this->user->avatar,
             ]),
+            // 'attachments' => MessageAttachmentResource::collection($this->whenLoaded('attachments')),
+            'attachment' => new MessageAttachmentResource($this->whenLoaded('attachment')),
         ];
     }
 }

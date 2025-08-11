@@ -9,7 +9,7 @@ use App\Services\ConversationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Log;
 
 class ConversationResource extends JsonResource
 {
@@ -28,7 +28,7 @@ class ConversationResource extends JsonResource
             'description' => $this->when($isGroup, $this->description),
             'lastMessage' => new MessageResource($this->whenLoaded('lastMessage')),
             'hasUnread' => $this->hasUnreadMessages($currentUser, $this->resource),
-            'avatar' => '', // ToDo: Implement avatar logic
+            'avatar' => $this->getAvatar($isGroup, $otherParticipant),
             'type' => $this->conversation_type,
             'participants' => UserResource::collection(
                 $this->participants->loadMissing('user')->pluck('user')
@@ -36,6 +36,31 @@ class ConversationResource extends JsonResource
             'createdAt' => $this->created_at->toIso8601String(),
             'updatedAt' => $this->updated_at->toIso8601String(),
         ];
+    }
+
+    protected function getAvatar(bool $isGroup, ?Participant $otherParticipant): ?array
+    {
+        if ($isGroup) {
+            if ($this->avatar) {
+                return [
+                    'original' => route('api.storage', ['path' => $this->avatar['original']]),
+                    'medium'   => route('api.storage', ['path' => $this->avatar['medium']]),
+                    'small'    => route('api.storage', ['path' => $this->avatar['small']]),
+                ];
+            }
+
+            return null;
+        }
+
+        if ($otherParticipant && $otherParticipant->user->avatar) {
+            return [
+                'original' => route('api.storage', ['path' => $otherParticipant->user->avatar['original']]),
+                'medium'   => route('api.storage', ['path' => $otherParticipant->user->avatar['medium']]),
+                'small'    => route('api.storage', ['path' => $otherParticipant->user->avatar['small']]),
+            ];
+        }
+
+        return null;
     }
 
     protected function getOtherParticipant(User $currentUser): ?Participant

@@ -14,7 +14,7 @@ class MessageService
     public function getMessagesForConversation(Conversation $conversation, int $perPage = 30)
     {
         return $conversation->messages()
-            ->with('user:id,name,tag', 'recipients')
+            ->with('user:id,name,tag', 'attachment', 'recipients')
             ->latest()
             ->paginate($perPage);
     }
@@ -24,8 +24,13 @@ class MessageService
         return DB::transaction(function () use ($conversation, $user, $data) {
             $message = $conversation->messages()->create([
                 'user_id' => $user->id,
-                'content' => $data['content']
+                'content' => $data['content'] ?? null
             ]);
+
+            if (isset($data['attachment'])) {
+                $attachmentsService = app(AttachmentsService::class);
+                $attachmentsService->storeForMessage($message, $data['attachment']);
+            }
 
             $conversation->update(['last_message_id' => $message->id]);
             $conversation->participants()->whereNull('joined_at')->update(['joined_at' => now()]);
@@ -73,6 +78,11 @@ class MessageService
                 $conversation->update([
                     'last_message_id' => $newLastMessage?->id,
                 ]);
+            }
+
+            if ($message->attachment) {
+                $attachmentsService = app(AttachmentsService::class);
+                $attachmentsService->deleteFiles(collect([$message->attachment]));
             }
 
             $message->delete();

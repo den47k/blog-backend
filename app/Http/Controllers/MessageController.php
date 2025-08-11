@@ -14,6 +14,7 @@ use App\Services\MessageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 
 class MessageController extends Controller
 {
@@ -31,6 +32,8 @@ class MessageController extends Controller
     public function store(StoreMessageRequest $request, Conversation $conversation): JsonResponse
     {
         Gate::authorize('view', $conversation);
+
+        Log::info($request->all());
 
         $message = $this->messageService->storeMessage(
             $conversation,

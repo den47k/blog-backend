@@ -16,7 +16,7 @@ class ConversationService
     {
         return $user->activeConversations()
             ->with([
-                'participants.user:id,name,tag',
+                'participants.user:id,name,tag,avatar',
                 'lastMessage:id,content,created_at'
             ])
             ->latest('updated_at')
