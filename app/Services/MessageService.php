@@ -39,7 +39,7 @@ class MessageService
             $conversationService->markConversationAsRead($conversation, $user);
 
             $recipients = $conversation->participants->where('user_id', '!=', $user->id)->pluck('user');
-            broadcast(new MessageEvent('create', $message->load('user'), $recipients->all()))->toOthers();
+            broadcast(new MessageEvent('create', $message->load('user', 'attachment', 'recipients'), $recipients->all()))->toOthers();
 
             return $message;
         });
@@ -56,7 +56,7 @@ class MessageService
             $conversation = $message->conversation;
             $recipients = $conversation->participants->where('user_id', '!=', $message->user_id)->pluck('user');
 
-            broadcast(new MessageEvent('update', $message->load('user'), $recipients->all()))->toOthers();
+            broadcast(new MessageEvent('update', $message->load('user', 'attachment', 'recipients'), $recipients->all()))->toOthers();
 
             return $message;
         });
