@@ -9,7 +9,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Models\Conversation;
 use App\Models\Message;
-use App\Traits\Traits\HasProfilePhoto;
+use App\Traits\HasProfilePhoto;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
