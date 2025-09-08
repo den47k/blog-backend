@@ -13,6 +13,11 @@ class ConversationPolicy
         return $conversation->participants()->where('user_id', $user->id)->exists();
     }
 
+    public function delete(User $user, Conversation $conversation): bool
+    {
+        return $conversation->participants()->where('user_id', $user->id)->exists();
+    }
+
     public function markAsRead(User $user, Conversation $conversation): bool
     {
         return $this->view($user, $conversation);

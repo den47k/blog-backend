@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Gate;
 class ConversationController extends Controller
 {
     public function __construct(
-        private ConversationService $conversationService,
+        private readonly ConversationService $conversationService,
     ) {}
 
     public function index(Request $request): AnonymousResourceCollection
@@ -25,12 +25,15 @@ class ConversationController extends Controller
         return ConversationResource::collection($conversations);
     }
 
-    public function show(Request $request, string $tag)
+    public function show(Request $request, string $tag): ConversationResource
     {
         $targetUser = User::where('tag', $tag)->firstOrFail();
         $conversation = Conversation::findExistingConversation($request->user(), $targetUser);
 
-        abort_unless($conversation, 404, 'Conversation not found');
+        if (!$conversation) {
+            abort(404, 'Conversation not found');
+        }
+
         Gate::authorize('view', $conversation);
 
         return new ConversationResource($conversation);
@@ -40,9 +43,11 @@ class ConversationController extends Controller
     {
         $recipient = User::findOrFail($request->user_id);
 
-        if ($request->user()->id === $recipient->id) return response()->json(['message' => 'Can\'t create conversation with yourseld'], 422);
+        if ($request->user()->id === $recipient->id) {
+            return response()->json(['message' => 'Cannot create conversation with yourself'], 422);
+        }
 
-        $conversation = $this->conversationService->createPrivateConversation(
+        $conversation = $this->conversationService->createOrGetPrivateConversation(
             $request->user(),
             $recipient,
             $request->should_join_now
@@ -54,10 +59,19 @@ class ConversationController extends Controller
         ], 201);
     }
 
-    // public function createGroupConversation(): JsonResponse
+    // public function createGroupConversation()
     // {
-    //     return response()->json([], 201);
+    //     //
     // }
+
+    public function destroy(Request $request, Conversation $conversation): JsonResponse
+    {
+        Gate::authorize('delete', $conversation);
+
+        $this->conversationService->deleteConversation($conversation, $request->user());
+
+        return response()->json(['message' => 'Conversation deleted successfully']);
+    }
 
     public function markAsRead(Request $request, Conversation $conversation): JsonResponse
     {

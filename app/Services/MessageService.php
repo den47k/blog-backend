@@ -7,6 +7,7 @@ use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
+use App\Repositories\ConversationRedisRepository;
 use Illuminate\Support\Facades\DB;
 
 class MessageService
@@ -35,8 +36,8 @@ class MessageService
             $conversation->update(['last_message_id' => $message->id]);
             $conversation->participants()->whereNull('joined_at')->update(['joined_at' => now()]);
 
-            $conversationService = app(ConversationService::class);
-            $conversationService->markConversationAsRead($conversation, $user);
+            $conversationRedisRepository = app(ConversationRedisRepository::class);
+            $conversationRedisRepository->markAsRead($conversation, $user);
 
             $recipients = $conversation->participants->where('user_id', '!=', $user->id)->pluck('user');
             broadcast(new MessageEvent('create', $message->load('user', 'attachment', 'recipients'), $recipients->all()))->toOthers();

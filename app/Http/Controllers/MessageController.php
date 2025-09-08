@@ -18,7 +18,9 @@ use Illuminate\Support\Facades\Log;
 
 class MessageController extends Controller
 {
-    public function __construct(private MessageService $messageService) {}
+    public function __construct(
+        private readonly MessageService $messageService
+    ) {}
 
     public function index(Request $request, Conversation $conversation): AnonymousResourceCollection
     {
@@ -32,8 +34,6 @@ class MessageController extends Controller
     public function store(StoreMessageRequest $request, Conversation $conversation): JsonResponse
     {
         Gate::authorize('view', $conversation);
-
-        Log::info($request->all());
 
         $message = $this->messageService->storeMessage(
             $conversation,
