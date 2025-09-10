@@ -58,19 +58,9 @@ class ConversationService
     public function deleteConversation(Conversation $conversation, User $user): void
     {
         DB::transaction(function () use ($conversation, $user) {
-            $conversation->participants()
-                ->where('user_id', $user->id)
-                ->update(['left_at' => now()]);
-
-            $activeParticipants = $conversation->participants()
-                ->whereNull('left_at')
-                ->count();
-
-            if ($activeParticipants === 0) {
-                $conversation->messages()->delete();
-                $conversation->participants()->delete();
-                $conversation->delete();
-            }
+            // $conversation->messages()->delete();
+            // $conversation->participants()->delete();
+            $conversation->delete();
         });
     }
 

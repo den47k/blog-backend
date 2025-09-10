@@ -47,7 +47,7 @@ class ConversationController extends Controller
             return response()->json(['message' => 'Cannot create conversation with yourself'], 422);
         }
 
-        $conversation = $this->conversationService->createOrGetPrivateConversation(
+        $conversation = $this->conversationService->createPrivateConversation(
             $request->user(),
             $recipient,
             $request->should_join_now
