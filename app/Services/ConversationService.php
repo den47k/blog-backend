@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\ConversationDeleted;
 use App\Models\Conversation;
 use App\Models\User;
 use App\Repositories\ConversationRedisRepository;
@@ -21,23 +22,40 @@ class ConversationService
             ->get();
     }
 
-    public function createPrivateConversation(User $initiator, User $other, bool $should_join_now): Conversation
+    public function getPrivateConversation(User $user, string $tag): Conversation
     {
+        $targetUser = User::where('tag', $tag)->firstOrFail();
+        $conversation = Conversation::findExistingConversation($user, $targetUser);
+
+        if (!$conversation) {
+            throw new ModelNotFoundException('Conversation not found');
+        }
+
+        return $conversation;
+    }
+
+    public function createPrivateConversation(User $initiator, int $recipientId, bool $should_join_now): Conversation
+    {
+        $other = User::findOrFail($recipientId);
+
+        if ($initiator->id === $other->id) {
+            throw new InvalidArgumentException('Cannot create conversation with yourself');
+        }
+
         return DB::transaction(function () use ($initiator, $other, $should_join_now) {
             $existingConversation = Conversation::findExistingConversation($initiator, $other);
 
             if ($existingConversation) {
-                // if ($should_join_now && $existingConversation->participants->isNotEmpty()) {
-                //     $existingConversation->participants[0]->update(['joined_at' => now()]);
-                // }
-
                 if ($should_join_now) {
                     $participant = $existingConversation->participants()
                         ->where('user_id', $initiator->id)
                         ->first();
 
-                    if ($participant) {
-                        $participant->update(['joined_aat' => now()]);
+                    if ($participant && !$participant->joined_at) {
+                        $participant->update(['joined_at' => now()]);
+
+                        // $existingConversation->load(['participants.user', 'lastMessage']);  im not sure i need this broadcast at all
+                        // broadcast(new ConversationCreated($existingConversation, $other));
                     }
                 }
                 return $existingConversation;
@@ -58,9 +76,16 @@ class ConversationService
     public function deleteConversation(Conversation $conversation, User $user): void
     {
         DB::transaction(function () use ($conversation, $user) {
-            // $conversation->messages()->delete();
-            // $conversation->participants()->delete();
+            $userIds = $conversation->participants()
+                ->whereNotNull('joined_at')
+                ->where('user_id', '!=', $user->id)
+                ->pluck('user_id')
+                ->toArray();
+
+            $conversationId = $conversation->id;
             $conversation->delete();
+
+            broadcast(new ConversationDeleted($conversationId, $userIds));
         });
     }
 

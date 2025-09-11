@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\ConversationCreated;
 use App\Events\MessageEvent;
 use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
@@ -34,7 +35,22 @@ class MessageService
             }
 
             $conversation->update(['last_message_id' => $message->id]);
-            $conversation->participants()->whereNull('joined_at')->update(['joined_at' => now()]);
+            // $conversation->participants()->whereNull('joined_at')->update(['joined_at' => now()]);
+
+            $participant = $conversation->participants()->where('user_id', $user->id)->first();
+
+            if (!$participant->joined_at) {
+                $participant->update(['joined_at' => now()]);
+
+                $recipientId = $conversation->participants()
+                    ->where('user_id', '!=', $user->id)
+                    ->value('user_id');
+
+                if ($recipientId) {
+                    $conversation->load(['participants.user', 'lastMessage']);
+                    event(new ConversationCreated($conversation, $recipientId));
+                }
+            }
 
             $conversationRedisRepository = app(ConversationRedisRepository::class);
             $conversationRedisRepository->markAsRead($conversation, $user);

@@ -21,35 +21,21 @@ class ConversationController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $conversations = $this->conversationService->getConversationsForUser($request->user());
-
         return ConversationResource::collection($conversations);
     }
 
     public function show(Request $request, string $tag): ConversationResource
     {
-        $targetUser = User::where('tag', $tag)->firstOrFail();
-        $conversation = Conversation::findExistingConversation($request->user(), $targetUser);
-
-        if (!$conversation) {
-            abort(404, 'Conversation not found');
-        }
-
+        $conversation = $this->conversationService->getPrivateConversation($request->user(), $tag);
         Gate::authorize('view', $conversation);
-
         return new ConversationResource($conversation);
     }
 
     public function createPrivateConversation(CreatePrivateConversationRequest $request): JsonResponse
     {
-        $recipient = User::findOrFail($request->user_id);
-
-        if ($request->user()->id === $recipient->id) {
-            return response()->json(['message' => 'Cannot create conversation with yourself'], 422);
-        }
-
         $conversation = $this->conversationService->createPrivateConversation(
             $request->user(),
-            $recipient,
+            $request->user_id,
             $request->should_join_now
         );
 
@@ -59,26 +45,17 @@ class ConversationController extends Controller
         ], 201);
     }
 
-    // public function createGroupConversation()
-    // {
-    //     //
-    // }
-
     public function destroy(Request $request, Conversation $conversation): JsonResponse
     {
         Gate::authorize('delete', $conversation);
-
         $this->conversationService->deleteConversation($conversation, $request->user());
-
         return response()->json(['message' => 'Conversation deleted successfully']);
     }
 
     public function markAsRead(Request $request, Conversation $conversation): JsonResponse
     {
         Gate::authorize('markAsRead', $conversation);
-
         $this->conversationService->markConversationAsRead($conversation, $request->user());
-
         return response()->json(['message' => 'Conversation marked as read.']);
     }
 }

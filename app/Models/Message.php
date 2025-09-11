@@ -7,8 +7,6 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Redis;
 
 class Message extends Model
 {
