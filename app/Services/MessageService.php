@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Events\ConversationCreated;
-use App\Events\MessageEvent;
+use App\Events\MessageCreatedEvent;
+use App\Events\MessageDeletedEvent;
+use App\Events\MessageUpdatedEvent;
 use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
 use App\Models\Message;
@@ -56,7 +58,7 @@ class MessageService
             $conversationRedisRepository->markAsRead($conversation, $user);
 
             $recipients = $conversation->participants->where('user_id', '!=', $user->id)->pluck('user');
-            broadcast(new MessageEvent('create', $message->load('user', 'attachment', 'recipients'), $recipients->all()))->toOthers();
+            broadcast(new MessageCreatedEvent($message->load('user', 'attachment', 'recipients'), $recipients->all()))->toOthers();
 
             return $message;
         });
@@ -73,7 +75,7 @@ class MessageService
             $conversation = $message->conversation;
             $recipients = $conversation->participants->where('user_id', '!=', $message->user_id)->pluck('user');
 
-            broadcast(new MessageEvent('update', $message->load('user', 'attachment', 'recipients'), $recipients->all()))->toOthers();
+            broadcast(new MessageUpdatedEvent($message->load('user', 'attachment', 'recipients'), $recipients->all()))->toOthers();
 
             return $message;
         });
@@ -108,12 +110,12 @@ class MessageService
                 ->where('user_id', '!=', $message->user_id)
                 ->pluck('user');
 
-            broadcast(new MessageEvent(
-                'delete',
-                $message,
-                $recipients->all(),
+            broadcast(new MessageDeletedEvent(
+                $conversation->id,
+                $messageId,
                 $wasLastMessage,
-                $newLastMessage
+                $newLastMessage,
+                $recipients->all()
             ))->toOthers();
 
             return [
