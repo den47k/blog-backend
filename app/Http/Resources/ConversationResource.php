@@ -11,17 +11,26 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class ConversationResource extends JsonResource
 {
+    protected User $currentUser;
+
     public function __construct($resource)
     {
         parent::__construct($resource);
         $this->redisRepository = app(ConversationRedisRepository::class);
+        $this->currentUser = auth()->user();
+    }
+
+    public static function forUser($resource, User $user): self
+    {
+        $instance = new self($resource);
+        $instance->currentUser = $user;
+        return $instance;
     }
 
     public function toArray(Request $request): array
     {
-        $currentUser = $request->user();
+        $otherParticipant = $this->getOtherParticipant();
         $isGroup = $this->isGroupConversation();
-        $otherParticipant = $this->getOtherParticipant($currentUser);
 
         return [
             'id' => $this->id,
@@ -29,7 +38,7 @@ class ConversationResource extends JsonResource
             'title' => $this->getConversationTitle($isGroup, $otherParticipant),
             'description' => $this->when($isGroup, $this->description),
             'lastMessage' => new MessageResource($this->whenLoaded('lastMessage')),
-            'hasUnread' => $this->hasUnreadMessages($currentUser),
+            'hasUnread' => $this->hasUnreadMessages(),
             'avatar' => $this->getAvatar($isGroup, $otherParticipant),
             'type' => $this->conversation_type,
             'participants' => UserResource::collection($this->getParticipants()),
@@ -93,16 +102,16 @@ class ConversationResource extends JsonResource
         return route('api.storage', ['path' => $path]);
     }
 
-    private function getOtherParticipant(User $currentUser): ?Participant
+    private function getOtherParticipant(): ?Participant
     {
         return $this->participants
-            ->where('user_id', '!=', $currentUser->id)
+            ->where('user_id', '!=', $this->currentUser->id)
             ->first();
     }
 
-    private function hasUnreadMessages(User $user): bool
+    private function hasUnreadMessages(): bool
     {
-        $lastReadAt = $this->redisRepository->getLastReadAt($user, $this->resource);
+        $lastReadAt = $this->redisRepository->getLastReadAt($this->currentUser, $this->resource);
 
         if ($lastReadAt) {
             return $this->updated_at->gt($lastReadAt);

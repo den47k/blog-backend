@@ -4,26 +4,24 @@ namespace App\Events;
 
 use App\Http\Resources\ConversationResource;
 use App\Models\Conversation;
-use Illuminate\Broadcasting\Channel;
+use App\Models\User;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class ConversationCreated implements ShouldBroadcastNow
+class ConversationCreatedEvent implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $conversation;
-    public $userId;
+    public Conversation $conversation;
+    public User $recipient;
 
-    public function __construct(Conversation $conversation, User $user)
+    public function __construct(Conversation $conversation, User $recipient)
     {
         $this->conversation = $conversation;
-        $this->userId = $user->id;
+        $this->recipient = $recipient;
     }
 
     public function broadcastAs()
@@ -33,11 +31,15 @@ class ConversationCreated implements ShouldBroadcastNow
 
     public function broadcastWith()
     {
-        return (new ConversationResource($this->conversation))->resolve();
+        return [
+            'conversation' => ConversationResource::forUser($this->conversation, $this->recipient)->resolve()
+        ];
     }
 
-    public function broadcastOn()
+    public function broadcastOn(): array
     {
-        return new PrivateChannel('user.' . $this->userId);
+        return [
+            new PrivateChannel('user.' . $this->recipient->id)
+        ];
     }
 }

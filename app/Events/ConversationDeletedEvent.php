@@ -2,25 +2,23 @@
 
 namespace App\Events;
 
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class ConversationDeleted
+class ConversationDeletedEvent implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $conversationId;
-    public $userIds;
+    public string $conversationId;
+    public array $recipients;
 
-    public function __construct($conversationId, array $userIds)
+    public function __construct(string $conversationId, array $recipients = [])
     {
         $this->conversationId = $conversationId;
-        $this->userIds = $userIds;
+        $this->recipients = $recipients;
     }
 
     public function broadcastAs()
@@ -35,8 +33,12 @@ class ConversationDeleted
 
     public function broadcastOn(): array
     {
-        return [
-            new PrivateChannel('channel-name'),
-        ];
+        $channels = [];
+
+        foreach ($this->recipients as $recipient) {
+            $channels[] = new PrivateChannel('user.' . $recipient->id);
+        }
+
+        return $channels;
     }
 }

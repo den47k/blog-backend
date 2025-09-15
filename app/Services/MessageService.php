@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Events\ConversationCreated;
+use App\Events\ConversationCreatedEvent;
 use App\Events\MessageCreatedEvent;
 use App\Events\MessageDeletedEvent;
 use App\Events\MessageUpdatedEvent;
@@ -37,20 +37,24 @@ class MessageService
             }
 
             $conversation->update(['last_message_id' => $message->id]);
-            // $conversation->participants()->whereNull('joined_at')->update(['joined_at' => now()]);
 
             $participant = $conversation->participants()->where('user_id', $user->id)->first();
 
-            if (!$participant->joined_at) {
-                $participant->update(['joined_at' => now()]);
+            if (is_null($participant->joined_at)) {
+                $conversation->participants()->whereNull('joined_at')->update(['joined_at' => now()]);
 
-                $recipientId = $conversation->participants()
+                $recipients = $conversation->participants()
                     ->where('user_id', '!=', $user->id)
-                    ->value('user_id');
+                    ->with('user')
+                    ->get()
+                    ->pluck('user');
 
-                if ($recipientId) {
+                if ($recipients->isNotEmpty()) {
                     $conversation->load(['participants.user', 'lastMessage']);
-                    event(new ConversationCreated($conversation, $recipientId));
+
+                    foreach ($recipients as $recipient) {
+                        event(new ConversationCreatedEvent($conversation, $recipient));
+                    }
                 }
             }
 

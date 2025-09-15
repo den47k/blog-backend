@@ -2,12 +2,11 @@
 
 namespace App\Services;
 
-use App\Events\ConversationDeleted;
+use App\Events\ConversationDeletedEvent;
 use App\Models\Conversation;
 use App\Models\User;
 use App\Repositories\ConversationRedisRepository;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Redis;
 
 class ConversationService
 {
@@ -34,7 +33,7 @@ class ConversationService
         return $conversation;
     }
 
-    public function createPrivateConversation(User $initiator, int $recipientId, bool $should_join_now): Conversation
+    public function createPrivateConversation(User $initiator, string $recipientId, bool $should_join_now): Conversation
     {
         $other = User::findOrFail($recipientId);
 
@@ -85,7 +84,8 @@ class ConversationService
             $conversationId = $conversation->id;
             $conversation->delete();
 
-            broadcast(new ConversationDeleted($conversationId, $userIds));
+            $recipients = User::whereIn('id', $userIds)->get();
+            broadcast(new ConversationDeletedEvent($conversationId, $recipients->all()));
         });
     }
 
