@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\DB;
 
 class ConversationService
 {
+    public function __construct(
+        private ConversationRedisRepository $redisRepository
+    ) {}
+
     public function getConversationsForUser(User $user)
     {
         return $user->activeConversations()
@@ -93,7 +97,17 @@ class ConversationService
 
     public function markConversationAsRead(Conversation $conversation, User $user): void
     {
-        $conversationRedisRepository = app(ConversationRedisRepository::class);
-        $conversationRedisRepository->markAsRead($conversation, $user);
+        $this->redisRepository->markAsRead($conversation, $user);
+    }
+
+    public function hasUnreadMessages(Conversation $conversation, User $user): bool
+    {
+        $lastReadAt = $this->redisRepository->getLastReadAt($user, $conversation);
+        $lastMessage = $conversation->lastMessage;
+
+        if (!$lastMessage) return false;
+        if ($lastReadAt) return $lastMessage->created_at->gt($lastReadAt);
+
+        return true;
     }
 }

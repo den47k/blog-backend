@@ -6,6 +6,7 @@ use App\Models\Conversation;
 use App\Models\Participant;
 use App\Models\User;
 use App\Repositories\ConversationRedisRepository;
+use App\Services\ConversationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -38,7 +39,7 @@ class ConversationResource extends JsonResource
             'title' => $this->getConversationTitle($isGroup, $otherParticipant),
             'description' => $this->when($isGroup, $this->description),
             'lastMessage' => new MessageResource($this->whenLoaded('lastMessage')),
-            'hasUnread' => $this->hasUnreadMessages(),
+            'hasUnread' => app(ConversationService::class)->hasUnreadMessages($this->resource, $this->currentUser),
             'avatar' => $this->getAvatar($isGroup, $otherParticipant),
             'type' => $this->conversation_type,
             'participants' => UserResource::collection($this->getParticipants()),
@@ -107,20 +108,5 @@ class ConversationResource extends JsonResource
         return $this->participants
             ->where('user_id', '!=', $this->currentUser->id)
             ->first();
-    }
-
-    private function hasUnreadMessages(): bool
-    {
-        $lastReadAt = $this->redisRepository->getLastReadAt($this->currentUser, $this->resource);
-
-        if (!$this->lastMessage) {
-            return false;
-        }
-
-        if ($lastReadAt) {
-            return $this->lastMessage->created_at->gt($lastReadAt);
-        }
-
-        return true;
     }
 }

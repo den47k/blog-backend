@@ -115,7 +115,7 @@ class MessageService
                 ->pluck('user');
 
             broadcast(new MessageDeletedEvent(
-                $conversation->id,
+                $conversation,
                 $messageId,
                 $wasLastMessage,
                 $newLastMessage,
