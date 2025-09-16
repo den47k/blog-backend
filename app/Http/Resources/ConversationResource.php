@@ -113,10 +113,14 @@ class ConversationResource extends JsonResource
     {
         $lastReadAt = $this->redisRepository->getLastReadAt($this->currentUser, $this->resource);
 
-        if ($lastReadAt) {
-            return $this->updated_at->gt($lastReadAt);
+        if (!$this->lastMessage) {
+            return false;
         }
 
-        return $this->last_message_id !== null;
+        if ($lastReadAt) {
+            return $this->lastMessage->created_at->gt($lastReadAt);
+        }
+
+        return true;
     }
 }
