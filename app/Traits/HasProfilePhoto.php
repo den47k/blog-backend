@@ -63,6 +63,9 @@ trait HasProfilePhoto
         } catch (\Exception $e) {
             \Log::error("Failed to delete old avatar for user {$this->id}: " . $e->getMessage());
         }
+
+        $this->avatar = null;
+        $this->save();
     }
 
     public function getAvatarUrls(): ?array
