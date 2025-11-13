@@ -10,10 +10,11 @@ use Illuminate\Notifications\Notifiable;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Traits\HasProfilePhoto;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasUuids, HasFactory, Notifiable, HasProfilePhoto;
+    use HasApiTokens, HasUuids, HasFactory, Notifiable, HasProfilePhoto;
 
     // Model attribute configuration
     protected $fillable = [

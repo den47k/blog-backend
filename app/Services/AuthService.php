@@ -37,4 +37,46 @@ class AuthService
     {
         Auth::guard('web')->logout();
     }
+
+    public function mobileLogin(array $credentials, string $deviceName): string
+    {
+        $user = User::where('email', $credentials['email'])->first();
+
+        if (!$user || !Hash::check($credentials['password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'email' => ['The provided credentials are incorrect.'],
+            ]);
+        }
+
+        return $user->createToken($deviceName)->plainTextToken;
+    }
+
+    public function mobileRegister(array $data, string $deviceName): array
+    {
+        $user = $this->register($data);
+        $token = $user->createToken($deviceName)->plainTextToken;
+
+        return [
+            'user' => $user,
+            'token' => $token
+        ];
+    }
+
+    public function mobileLogout() {
+
+    }
+
+    public function revokeToken(User $user, ?int $tokenId = null): void
+    {
+        if ($tokenId) {
+            $user->tokens()->where('id', $tokenId)->delete();
+        } else {
+            $user->currentAccessToken()->delete();
+        }
+    }
+
+    public function revokeAllTokens(User $user): void
+    {
+        $user->tokens()->delete();
+    }
 }
