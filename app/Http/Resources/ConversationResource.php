@@ -2,10 +2,8 @@
 
 namespace App\Http\Resources;
 
-use App\Models\Conversation;
 use App\Models\Participant;
 use App\Models\User;
-use App\Repositories\ConversationRedisRepository;
 use App\Services\ConversationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -17,7 +15,6 @@ class ConversationResource extends JsonResource
     public function __construct($resource)
     {
         parent::__construct($resource);
-        $this->redisRepository = app(ConversationRedisRepository::class);
         $this->currentUser = auth()->user();
     }
 
@@ -34,37 +31,50 @@ class ConversationResource extends JsonResource
         $isGroup = $this->isGroupConversation();
 
         return [
-            'id' => $this->id,
-            'userTag' => $this->when(!$isGroup, $otherParticipant?->user->tag),
-            'title' => $this->getConversationTitle($isGroup, $otherParticipant),
-            'description' => $this->when($isGroup, $this->description),
-            'lastMessage' => new MessageResource($this->whenLoaded('lastMessage')),
-            'hasUnread' => app(ConversationService::class)->hasUnreadMessages($this->resource, $this->currentUser),
-            'avatar' => $this->getAvatar($isGroup, $otherParticipant),
-            'type' => $this->conversation_type,
-            'participants' => UserResource::collection($this->getParticipants()),
-            'createdAt' => $this->created_at->toIso8601String(),
-            'updatedAt' => $this->updated_at->toIso8601String(),
+            "id" => $this->id,
+            "userTag" => $this->when(!$isGroup, $otherParticipant?->user->tag),
+            "title" => $this->getConversationTitle($isGroup, $otherParticipant),
+            "description" => $this->when($isGroup, $this->description),
+            "lastMessage" => new MessageResource(
+                $this->whenLoaded("lastMessage"),
+            ),
+            "hasUnread" => app(ConversationService::class)->hasUnreadMessages(
+                $this->resource,
+                $this->currentUser,
+            ),
+            "avatar" => $this->getAvatar($isGroup, $otherParticipant),
+            "type" => $this->conversation_type,
+            "participants" => UserResource::collection(
+                $this->getParticipants(),
+            ),
+            "createdAt" => $this->created_at->toIso8601String(),
+            "updatedAt" => $this->updated_at->toIso8601String(),
         ];
     }
 
     private function isGroupConversation(): bool
     {
-        return $this->conversation_type === 'group';
+        return $this->conversation_type === "group";
     }
 
-    private function getConversationTitle(bool $isGroup, ?Participant $otherParticipant): string
-    {
-        return $isGroup ? $this->title : $otherParticipant?->user->name ?? 'Unknown User';
+    private function getConversationTitle(
+        bool $isGroup,
+        ?Participant $otherParticipant,
+    ): string {
+        return $isGroup
+            ? $this->title
+            : $otherParticipant?->user->name ?? "Unknown User";
     }
 
     private function getParticipants()
     {
-        return $this->participants->loadMissing('user')->pluck('user');
+        return $this->participants->loadMissing("user")->pluck("user");
     }
 
-    private function getAvatar(bool $isGroup, ?Participant $otherParticipant): ?array
-    {
+    private function getAvatar(
+        bool $isGroup,
+        ?Participant $otherParticipant,
+    ): ?array {
         if ($isGroup) {
             return $this->getGroupAvatar();
         }
@@ -79,9 +89,9 @@ class ConversationResource extends JsonResource
         }
 
         return [
-            'original' => $this->getAvatarUrl($this->avatar['original']),
-            'medium' => $this->getAvatarUrl($this->avatar['medium']),
-            'small' => $this->getAvatarUrl($this->avatar['small']),
+            "original" => $this->getAvatarUrl($this->avatar["original"]),
+            "medium" => $this->getAvatarUrl($this->avatar["medium"]),
+            "small" => $this->getAvatarUrl($this->avatar["small"]),
         ];
     }
 
@@ -92,21 +102,25 @@ class ConversationResource extends JsonResource
         }
 
         return [
-            'original' => $this->getAvatarUrl($participant->user->avatar['original']),
-            'medium' => $this->getAvatarUrl($participant->user->avatar['medium']),
-            'small' => $this->getAvatarUrl($participant->user->avatar['small']),
+            "original" => $this->getAvatarUrl(
+                $participant->user->avatar["original"],
+            ),
+            "medium" => $this->getAvatarUrl(
+                $participant->user->avatar["medium"],
+            ),
+            "small" => $this->getAvatarUrl($participant->user->avatar["small"]),
         ];
     }
 
     private function getAvatarUrl(string $path): string
     {
-        return route('api.storage', ['path' => $path]);
+        return route("api.storage", ["path" => $path]);
     }
 
     private function getOtherParticipant(): ?Participant
     {
         return $this->participants
-            ->where('user_id', '!=', $this->currentUser->id)
+            ->where("user_id", "!=", $this->currentUser->id)
             ->first();
     }
 }
