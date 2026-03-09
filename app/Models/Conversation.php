@@ -44,25 +44,4 @@ class Conversation extends Model
     {
         return $this->belongsTo(Message::class, 'last_message_id');
     }
-
-
-    // Helper methods
-    public static function findExistingConversation(User $initiator, User $other): ?Conversation
-    {
-        return self::where('conversation_type', 'private')
-            ->whereHas('participants', fn($q) => $q->where('user_id', $initiator->id))
-            ->whereHas('participants', fn($q) => $q->where('user_id', $other->id))
-            ->withCount('participants')
-            ->having('participants_count', 2)
-            ->with('lastMessage:id,content,created_at')
-            ->first();
-    }
-
-    public function addParticipant(User $user, $joinedAt = null, string $role = 'member'): Participant
-    {
-        return $this->participants()->updateOrCreate(
-            ['user_id' => $user->id],
-            ['joined_at' => $joinedAt, 'role' => $role]
-        );
-    }
 }

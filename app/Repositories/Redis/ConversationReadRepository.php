@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Repositories;
+namespace App\Repositories\Redis;
 
 use App\Models\Conversation;
 use App\Models\User;
+use App\Repositories\Interfaces\ConversationReadRepositoryInterface;
 use Illuminate\Support\Facades\Redis;
 
-class ConversationRedisRepository
+class ConversationReadRepository implements ConversationReadRepositoryInterface
 {
     private const REDIS_LAST_READ_PREFIX = 'user';
     private const REDIS_CONVERSATION_PREFIX = 'conversation';
@@ -20,7 +21,7 @@ class ConversationRedisRepository
         );
     }
 
-    public function getLastReadAt(User $user, Conversation $conversation)
+    public function getLastReadAt(User $user, Conversation $conversation): ?\Carbon\Carbon
     {
         $timestamp = Redis::hget(
             $this->getRedisLastReadKey($user),

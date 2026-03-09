@@ -4,16 +4,21 @@ namespace App\Services;
 
 use App\Http\Requests\LoginRequest;
 use App\Models\User;
+use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class AuthService
 {
+    public function __construct(
+        private readonly UserRepositoryInterface $userRepository,
+    ) {
+    }
+
     public function register(array $data): User
     {
-        return User::create([
+        return $this->userRepository->create([
             'name' => $data['name'],
             'tag' => $data['tag'],
             'email' => $data['email'],
@@ -40,7 +45,7 @@ class AuthService
 
     public function mobileLogin(array $credentials, string $deviceName): string
     {
-        $user = User::where('email', $credentials['email'])->first();
+        $user = $this->userRepository->findByEmail($credentials['email']);
 
         if (!$user || !Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([
@@ -60,11 +65,6 @@ class AuthService
             'user' => $user,
             'token' => $token
         ];
-    }
-
-    public function mobileLogout()
-    {
-
     }
 
     public function revokeToken(User $user, ?int $tokenId = null): void

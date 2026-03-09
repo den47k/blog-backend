@@ -10,44 +10,45 @@ use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
-use App\Repositories\ConversationRedisRepository;
+use App\Repositories\Interfaces\ConversationReadRepositoryInterface;
+use App\Repositories\Interfaces\ConversationRepositoryInterface;
+use App\Repositories\Interfaces\MessageRepositoryInterface;
+use App\Repositories\Interfaces\ParticipantRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 
 class MessageService
 {
+    public function __construct(
+        private readonly MessageRepositoryInterface $messageRepository,
+        private readonly ConversationRepositoryInterface $conversationRepository,
+        private readonly ParticipantRepositoryInterface $participantRepository,
+        private readonly ConversationReadRepositoryInterface $readRepository,
+        private readonly AttachmentsService $attachmentsService,
+    ) {
+    }
+
     public function getMessagesForConversation(Conversation $conversation, int $perPage = 30)
     {
-        return $conversation->messages()
-            ->with('user:id,name,tag', 'attachment', 'recipients')
-            ->latest()
-            ->paginate($perPage);
+        return $this->messageRepository->getPaginated($conversation, $perPage);
     }
 
     public function storeMessage(Conversation $conversation, User $user, array $data): Message
     {
         return DB::transaction(function () use ($conversation, $user, $data) {
-            $message = $conversation->messages()->create([
-                'user_id' => $user->id,
-                'content' => $data['content'] ?? null
-            ]);
+            $message = $this->messageRepository->create($conversation, $user->id, $data['content'] ?? null);
 
             if (isset($data['attachment'])) {
-                $attachmentsService = app(AttachmentsService::class);
-                $attachmentsService->storeForMessage($message, $data['attachment']);
+                $this->attachmentsService->storeForMessage($message, $data['attachment']);
             }
 
-            $conversation->update(['last_message_id' => $message->id]);
+            $this->conversationRepository->updateLastMessage($conversation, $message->id);
 
-            $participant = $conversation->participants()->where('user_id', $user->id)->first();
+            $participant = $this->participantRepository->find($conversation, $user->id);
 
             if (is_null($participant->joined_at)) {
-                $conversation->participants()->whereNull('joined_at')->update(['joined_at' => now()]);
+                $this->participantRepository->markUnjoinedAsJoined($conversation);
 
-                $recipients = $conversation->participants()
-                    ->where('user_id', '!=', $user->id)
-                    ->with('user')
-                    ->get()
-                    ->pluck('user');
+                $recipients = $this->participantRepository->getOtherParticipants($conversation, $user->id);
 
                 if ($recipients->isNotEmpty()) {
                     $conversation->load(['participants.user', 'lastMessage']);
@@ -58,10 +59,9 @@ class MessageService
                 }
             }
 
-            $conversationRedisRepository = app(ConversationRedisRepository::class);
-            $conversationRedisRepository->markAsRead($conversation, $user);
+            $this->readRepository->markAsRead($conversation, $user);
 
-            $recipients = $conversation->participants->where('user_id', '!=', $user->id)->pluck('user');
+            $recipients = $this->participantRepository->getOtherParticipants($conversation, $user->id);
             broadcast(new MessageCreatedEvent($message->load('user', 'attachment', 'recipients'), $recipients->all()))->toOthers();
 
             return $message;
@@ -71,13 +71,13 @@ class MessageService
     public function updateMessage(Message $message, array $data)
     {
         return DB::transaction(function () use ($message, $data) {
-            $message->update([
+            $this->messageRepository->update($message, [
                 'content' => $data['content'],
                 'edited_at' => now()
             ]);
 
             $conversation = $message->conversation;
-            $recipients = $conversation->participants->where('user_id', '!=', $message->user_id)->pluck('user');
+            $recipients = $this->participantRepository->getOtherParticipants($conversation, $message->user_id);
 
             broadcast(new MessageUpdatedEvent($message->load('user', 'attachment', 'recipients'), $recipients->all()))->toOthers();
 
@@ -93,26 +93,18 @@ class MessageService
             $newLastMessage = null;
 
             if ($wasLastMessage) {
-                $newLastMessage = $conversation->messages()
-                    ->where('id', '!=', $message->id)
-                    ->latest()
-                    ->first();
+                $newLastMessage = $this->messageRepository->findLatestExcluding($conversation, $message->id);
 
-                $conversation->update([
-                    'last_message_id' => $newLastMessage?->id,
-                ]);
+                $this->conversationRepository->updateLastMessage($conversation, $newLastMessage?->id);
             }
 
             if ($message->attachment) {
-                $attachmentsService = app(AttachmentsService::class);
-                $attachmentsService->deleteFiles(collect([$message->attachment]));
+                $this->attachmentsService->deleteFiles(collect([$message->attachment]));
             }
 
-            $message->delete();
+            $this->messageRepository->delete($message);
 
-            $recipients = $conversation->participants
-                ->where('user_id', '!=', $message->user_id)
-                ->pluck('user');
+            $recipients = $this->participantRepository->getOtherParticipants($conversation, $message->user_id);
 
             broadcast(new MessageDeletedEvent(
                 $conversation,
