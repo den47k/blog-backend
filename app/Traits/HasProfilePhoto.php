@@ -11,7 +11,8 @@ trait HasProfilePhoto
 {
     public function updateAvatar(?UploadedFile $file): ?array
     {
-        if (!$file) return null;
+        if (!$file)
+            return null;
 
         $this->deleteOldAvatar();
 
@@ -70,7 +71,8 @@ trait HasProfilePhoto
 
     public function getAvatarUrls(): ?array
     {
-        if (empty($this->avatar)) return null;
+        if (empty($this->avatar))
+            return null;
 
         return [
             'original' => route('api.storage', ['path' => $this->avatar['original']]),

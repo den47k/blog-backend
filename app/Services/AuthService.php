@@ -62,7 +62,8 @@ class AuthService
         ];
     }
 
-    public function mobileLogout() {
+    public function mobileLogout()
+    {
 
     }
 

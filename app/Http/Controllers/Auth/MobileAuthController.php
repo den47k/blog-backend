@@ -12,7 +12,9 @@ use Illuminate\Validation\ValidationException;
 
 class MobileAuthController extends Controller
 {
-    public function __construct(private AuthService $authService) {}
+    public function __construct(private AuthService $authService)
+    {
+    }
 
     public function login(Request $request)
     {

@@ -11,7 +11,8 @@ class VerificationController extends Controller
 {
     public function __construct(
         private VerificationService $verificationService
-    ) {}
+    ) {
+    }
 
     public function verify(Request $request)
     {

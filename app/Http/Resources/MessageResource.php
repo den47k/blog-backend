@@ -10,15 +10,15 @@ class MessageResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            "id" => $this->id,
-            "content" => $this->content,
-            "conversationId" => $this->conversation_id,
-            "senderId" => $this->user_id,
-            "editedAt" => $this->edited_at,
-            "createdAt" => $this->created_at->toISOString(),
-            "sender" => new UserResource($this->whenLoaded("user")),
-            "attachment" => new MessageAttachmentResource(
-                $this->whenLoaded("attachment"),
+            'id' => $this->id,
+            'content' => $this->content,
+            'conversationId' => $this->conversation_id,
+            'senderId' => $this->user_id,
+            'editedAt' => $this->edited_at,
+            'createdAt' => $this->created_at->toISOString(),
+            'sender' => new UserResource($this->whenLoaded('user')),
+            'attachment' => new MessageAttachmentResource(
+                $this->whenLoaded('attachment'),
             ),
         ];
     }

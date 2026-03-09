@@ -12,7 +12,8 @@ class ConversationService
 {
     public function __construct(
         private ConversationRedisRepository $redisRepository
-    ) {}
+    ) {
+    }
 
     public function getConversationsForUser(User $user)
     {
@@ -105,8 +106,10 @@ class ConversationService
         $lastReadAt = $this->redisRepository->getLastReadAt($user, $conversation);
         $lastMessage = $conversation->lastMessage;
 
-        if (!$lastMessage) return false;
-        if ($lastReadAt) return $lastMessage->created_at->gt($lastReadAt);
+        if (!$lastMessage)
+            return false;
+        if ($lastReadAt)
+            return $lastMessage->created_at->gt($lastReadAt);
 
         return true;
     }

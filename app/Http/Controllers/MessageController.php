@@ -20,7 +20,8 @@ class MessageController extends Controller
 {
     public function __construct(
         private readonly MessageService $messageService
-    ) {}
+    ) {
+    }
 
     public function index(Request $request, Conversation $conversation): AnonymousResourceCollection
     {

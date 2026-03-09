@@ -31,30 +31,30 @@ class ConversationResource extends JsonResource
         $isGroup = $this->isGroupConversation();
 
         return [
-            "id" => $this->id,
-            "userTag" => $this->when(!$isGroup, $otherParticipant?->user->tag),
-            "title" => $this->getConversationTitle($isGroup, $otherParticipant),
-            "description" => $this->when($isGroup, $this->description),
-            "lastMessage" => new MessageResource(
-                $this->whenLoaded("lastMessage"),
+            'id' => $this->id,
+            'userTag' => $this->when(!$isGroup, $otherParticipant?->user->tag),
+            'title' => $this->getConversationTitle($isGroup, $otherParticipant),
+            'description' => $this->when($isGroup, $this->description),
+            'lastMessage' => new MessageResource(
+                $this->whenLoaded('lastMessage'),
             ),
-            "hasUnread" => app(ConversationService::class)->hasUnreadMessages(
+            'hasUnread' => app(ConversationService::class)->hasUnreadMessages(
                 $this->resource,
                 $this->currentUser,
             ),
-            "avatar" => $this->getAvatar($isGroup, $otherParticipant),
-            "type" => $this->conversation_type,
-            "participants" => UserResource::collection(
+            'avatar' => $this->getAvatar($isGroup, $otherParticipant),
+            'type' => $this->conversation_type,
+            'participants' => UserResource::collection(
                 $this->getParticipants(),
             ),
-            "createdAt" => $this->created_at->toIso8601String(),
-            "updatedAt" => $this->updated_at->toIso8601String(),
+            'createdAt' => $this->created_at->toIso8601String(),
+            'updatedAt' => $this->updated_at->toIso8601String(),
         ];
     }
 
     private function isGroupConversation(): bool
     {
-        return $this->conversation_type === "group";
+        return $this->conversation_type === 'group';
     }
 
     private function getConversationTitle(
@@ -63,12 +63,12 @@ class ConversationResource extends JsonResource
     ): string {
         return $isGroup
             ? $this->title
-            : $otherParticipant?->user->name ?? "Unknown User";
+            : $otherParticipant?->user->name ?? 'Unknown User';
     }
 
     private function getParticipants()
     {
-        return $this->participants->loadMissing("user")->pluck("user");
+        return $this->participants->loadMissing('user')->pluck('user');
     }
 
     private function getAvatar(
@@ -89,9 +89,9 @@ class ConversationResource extends JsonResource
         }
 
         return [
-            "original" => $this->getAvatarUrl($this->avatar["original"]),
-            "medium" => $this->getAvatarUrl($this->avatar["medium"]),
-            "small" => $this->getAvatarUrl($this->avatar["small"]),
+            'original' => $this->getAvatarUrl($this->avatar['original']),
+            'medium' => $this->getAvatarUrl($this->avatar['medium']),
+            'small' => $this->getAvatarUrl($this->avatar['small']),
         ];
     }
 
@@ -102,25 +102,25 @@ class ConversationResource extends JsonResource
         }
 
         return [
-            "original" => $this->getAvatarUrl(
-                $participant->user->avatar["original"],
+            'original' => $this->getAvatarUrl(
+                $participant->user->avatar['original'],
             ),
-            "medium" => $this->getAvatarUrl(
-                $participant->user->avatar["medium"],
+            'medium' => $this->getAvatarUrl(
+                $participant->user->avatar['medium'],
             ),
-            "small" => $this->getAvatarUrl($participant->user->avatar["small"]),
+            'small' => $this->getAvatarUrl($participant->user->avatar['small']),
         ];
     }
 
     private function getAvatarUrl(string $path): string
     {
-        return route("api.storage", ["path" => $path]);
+        return route('api.storage', ['path' => $path]);
     }
 
     private function getOtherParticipant(): ?Participant
     {
         return $this->participants
-            ->where("user_id", "!=", $this->currentUser->id)
+            ->where('user_id', '!=', $this->currentUser->id)
             ->first();
     }
 }

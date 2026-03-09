@@ -64,7 +64,7 @@ class MessageDeletedEvent implements ShouldBroadcastNow
         ];
 
         foreach ($this->recipients as $recipient) {
-            $channels[] = new PrivateChannel('user.' . $recipient->id);
+            $channels[] = new PrivateChannel("user.{$recipient->id}");
         }
 
         return $channels;
