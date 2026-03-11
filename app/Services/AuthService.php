@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Http\Requests\LoginRequest;
 use App\Models\User;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Support\Facades\Auth;
@@ -26,11 +25,8 @@ class AuthService
         ]);
     }
 
-    public function login(LoginRequest $request)
+    public function login(array $credentials, bool $remember = false): void
     {
-        $credentials = $request->credentials();
-        $remember = $request->remember();
-
         if (!Auth::attempt($credentials, $remember)) {
             throw ValidationException::withMessages([
                 'email' => [trans('auth.failed')],

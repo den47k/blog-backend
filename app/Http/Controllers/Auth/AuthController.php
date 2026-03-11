@@ -34,7 +34,7 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request)
     {
-        $this->authService->login($request);
+        $this->authService->login($request->credentials(), $request->remember());
         $request->session()->regenerate();
 
         return response()->json(['user' => new UserResource($request->user())]);

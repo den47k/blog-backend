@@ -4,67 +4,56 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Gate;
 
 class UserController extends Controller
 {
+    public function __construct(
+        private readonly UserService $userService,
+    ) {
+    }
+
     public function update(Request $request, User $user): JsonResponse
     {
-        if (auth()->id() !== $user->id) {
-            abort(403, "Unauthorized action");
-        }
+        Gate::authorize('update', $user);
 
         $request->validate([
-            "name" => ["string", "min:3", "max:32"],
-            "avatar" => ["image", "max:5000"],
+            'name' => ['string', 'min:3', 'max:32'],
+            'avatar' => ['image', 'max:5000'],
         ]);
 
-        $response = [];
-
-        if ($request->has("name")) {
-            $user->name = $request->input("name");
-            $user->save();
-            $response["name"] = $user->name;
-        }
-
-        if ($request->hasFile("avatar")) {
-            $user->updateAvatar($request->file("avatar"));
-            $response["avatar"] = $user->getAvatarUrls();
-        }
+        $response = $this->userService->updateProfile(
+            $user,
+            $request->has('name') ? $request->input('name') : null,
+            $request->file('avatar'),
+        );
 
         return response()->json($response);
     }
 
-    public function deleteAvatar(Request $request, User $user)
+    public function deleteAvatar(Request $request, User $user): JsonResponse
     {
-        if (auth()->id() !== $user->id) {
-            abort(403, "Unauthorized action");
-        }
-        $user->deleteOldAvatar();
+        Gate::authorize('deleteAvatar', $user);
 
-        return response()->json(["message" => "Avatar deleted successfully"]);
+        $this->userService->deleteAvatar($user);
+
+        return response()->json(['message' => 'Avatar deleted successfully']);
     }
 
-    public function search(Request $request)
+    public function search(Request $request): AnonymousResourceCollection
     {
         $request->validate([
-            "query" => ["required", "string", "min:2"],
+            'query' => ['required', 'string', 'min:2'],
         ]);
 
-        $query = $request->input("query");
-        $authUserId = auth()->id();
-
-        $users = User::where("id", "!=", $authUserId)
-            ->where(function ($q) use ($query) {
-                $q->where("name", "LIKE", "%{$query}%")->orWhere(
-                    "tag",
-                    "LIKE",
-                    "%{$query}%",
-                );
-            })
-            ->limit(10)
-            ->get();
+        $users = $this->userService->searchUsers(
+            $request->input('query'),
+            auth()->id(),
+        );
 
         return UserResource::collection($users);
     }

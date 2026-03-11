@@ -32,4 +32,15 @@ class UserRepository implements UserRepositoryInterface
     {
         return User::create($data);
     }
+
+    public function search(string $query, string $excludeUserId, int $limit = 10): Collection
+    {
+        return User::where('id', '!=', $excludeUserId)
+            ->where(function ($q) use ($query) {
+                $q->where('name', 'LIKE', "%{$query}%")
+                    ->orWhere('tag', 'LIKE', "%{$query}%");
+            })
+            ->limit($limit)
+            ->get();
+    }
 }

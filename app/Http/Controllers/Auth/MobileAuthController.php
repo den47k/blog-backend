@@ -92,14 +92,12 @@ class MobileAuthController extends Controller
     public function tokens(Request $request)
     {
         return response()->json([
-            "tokens" => $request->user()->tokens->map(function ($token) {
-                return [
-                    "id" => $token->id,
-                    "name" => $token->name,
-                    "last_used_at" => $token->last_used_at,
-                    "created_at" => $token->created_at,
-                ];
-            }),
+            "tokens" => $request->user()->tokens->map(fn($token) => [
+                "id" => $token->id,
+                "name" => $token->name,
+                "last_used_at" => $token->last_used_at,
+                "created_at" => $token->created_at,
+            ]),
         ]);
     }
 

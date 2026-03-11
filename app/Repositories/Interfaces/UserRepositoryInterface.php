@@ -16,4 +16,6 @@ interface UserRepositoryInterface
     public function findManyByIds(array $ids): Collection;
 
     public function create(array $data): User;
+
+    public function search(string $query, string $excludeUserId, int $limit = 10): Collection;
 }

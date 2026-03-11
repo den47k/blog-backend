@@ -99,7 +99,7 @@ class MessageService
             }
 
             if ($message->attachment) {
-                $this->attachmentsService->deleteFiles(collect([$message->attachment]));
+                $this->attachmentsService->deleteFile($message->attachment);
             }
 
             $this->messageRepository->delete($message);

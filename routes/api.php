@@ -1,87 +1,27 @@
 <?php
 
-use App\Http\Controllers\Auth\AuthController;
-use App\Http\Controllers\Auth\ResetPasswordController;
-use App\Http\Controllers\ConversationController;
-use App\Http\Controllers\MessageController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\Auth\VerificationController;
-use App\Http\Controllers\Auth\MobileAuthController;
 use App\Http\Controllers\StorageController;
-use App\Http\Resources\UserResource;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-/* Guest routes - Web Auth */
+require __DIR__ . '/api/auth.php';
+require __DIR__ . '/api/mobile.php';
 
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
-
-/* Mobile Auth Routes */
-Route::prefix('mobile')->group(function () {
-    Route::post('/register', [MobileAuthController::class, 'register']);
-    Route::post('/login', [MobileAuthController::class, 'login']);
-
-    Route::middleware('auth:sanctum')->group(function () {
-        Route::post('/logout', [MobileAuthController::class, 'logout']);
-        Route::post('/tokens/revoke-all', [MobileAuthController::class, 'revokeAllTokens']);
-        Route::get('/tokens', [MobileAuthController::class, 'tokens']);
-        Route::delete('/tokens/{token_id}', [MobileAuthController::class, 'revokeSpecificToken']);
-    });
-});
-
-Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])->name('verification.verify');
-Route::post('/email/resend', [VerificationController::class, 'resend'])->name('verification.resend');
-
-Route::post('/forgot-password', [ResetPasswordController::class, 'requestResetLink'])->name('password.email');
-Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
-
-Route::middleware(['auth:sanctum'])->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/user', function (Request $request) {
-        return new UserResource($request->user());
-    });
-});
-
-/* Auth */
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
-    Route::prefix('users')->group(function () {
-        Route::get('/search', [UserController::class, 'search'])->name('users.search');
-        Route::put('/{user}', [UserController::class, 'update'])->name('users.update');
-        Route::delete('/{user}/avatar', [UserController::class, 'deleteAvatar'])->name('users.deleteAvatar');
-    });
+    require __DIR__ . '/api/users.php';
+    require __DIR__ . '/api/conversations.php';
 
-    Route::prefix('conversations')->group(function () {
-        Route::get('/', [ConversationController::class, 'index'])->name('conversation.index');
-        Route::get('/private/{tag}', [ConversationController::class, 'show'])->name('conversation.private.show');
-        Route::post('/private', [ConversationController::class, 'createPrivateConversation'])->name('conversation.private');
-        // Route::post('/group', [ConversationController::class, 'createGroupConversation'])->name('conversation.group');
-        Route::delete('/{conversation:id}', [ConversationController::class, 'destroy'])->name('conversation.destroy');
-        Route::post('/{conversation:id}/mark-as-read', [ConversationController::class, 'markAsRead'])->name('conversation.markAsRead');
-
-        Route::get('/{conversation:id}/messages', [MessageController::class, 'index'])->name('conversation.messages.index');
-        Route::post('/{conversation:id}/messages', [MessageController::class, 'store'])->name('conversation.messages.store');
-        Route::patch('/{conversation:id}/messages/{message:id}', [MessageController::class, 'update'])->name('conversation.messages.update');
-        Route::delete('/{conversation:id}/messages/{message:id}', [MessageController::class, 'delete'])->name('conversation.messages.delete');
-    });
-
-    // Storage route
     Route::get('/storage/{path}', StorageController::class)
         ->where('path', '.*')
         ->name('api.storage');
 });
 
 /* Test routes */
-Route::get('/test', function () {
-    return response()->json([
-        'message' => 'test message',
-        'time' => now()->toDateTimeString(),
-    ]);
-});
+Route::get('/test', fn() => response()->json([
+    'message' => 'test message',
+    'time' => now()->toDateTimeString(),
+]));
 
-Route::post('/test', function () {
-    return response()->json([
-        'message' => 'test message',
-        'time' => now()->toDateTimeString(),
-    ]);
-});
+Route::post('/test', fn() => response()->json([
+    'message' => 'test message',
+    'time' => now()->toDateTimeString(),
+]));

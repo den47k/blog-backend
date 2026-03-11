@@ -3,8 +3,9 @@
 namespace App\Services;
 
 use App\Models\Message;
+use App\Models\MessageAttachment;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Drivers\Imagick\Driver;
 use Intervention\Image\ImageManager;
@@ -43,14 +44,8 @@ class AttachmentsService
     }
 
 
-    public function deleteFiles(Collection $attachments): void
+    public function deleteFile(MessageAttachment $attachment): void
     {
-        if ($attachments->isEmpty()) {
-            return;
-        }
-
-        $attachment = $attachments->first();
-
         $pathsToDelete = [];
 
         if (!empty($attachment->file_data['original'])) {
