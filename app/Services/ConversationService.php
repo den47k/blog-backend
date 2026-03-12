@@ -116,14 +116,16 @@ class ConversationService
 
     public function hasUnreadMessages(Conversation $conversation, User $user): bool
     {
-        $lastReadAt = $this->readRepository->getLastReadAt($user, $conversation);
         $lastMessage = $conversation->lastMessage;
 
-        if (!$lastMessage)
+        if (!$lastMessage) {
             return false;
-        if ($lastReadAt)
-            return $lastMessage->created_at->gt($lastReadAt);
+        }
 
-        return true;
+        $lastReadAt = $this->readRepository->getLastReadAt($user, $conversation);
+
+        return $lastReadAt
+            ? $lastMessage->created_at->gt($lastReadAt)
+            : true;
     }
 }

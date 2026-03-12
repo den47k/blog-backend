@@ -5,7 +5,7 @@ namespace App\Events;
 use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
 use App\Models\Message;
-use App\Services\ConversationService;
+use App\Models\User;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
@@ -20,20 +20,23 @@ class MessageDeletedEvent implements ShouldBroadcastNow
     public string $deletedId;
     public bool $wasLastMessage;
     public ?array $newLastMessage;
-    public array $recipients;
+    public User $recipient;
+    public bool $hasUnread;
 
     public function __construct(
         Conversation $conversation,
         string $deletedId,
         bool $wasLastMessage,
         ?Message $newLastMessage,
-        array $recipients = []
+        User $recipient,
+        bool $hasUnread,
     ) {
         $this->conversation = $conversation;
         $this->deletedId = $deletedId;
         $this->wasLastMessage = $wasLastMessage;
         $this->newLastMessage = $newLastMessage ? (new MessageResource($newLastMessage))->resolve() : null;
-        $this->recipients = $recipients;
+        $this->recipient = $recipient;
+        $this->hasUnread = $hasUnread;
     }
 
     public function broadcastAs(): string
@@ -43,30 +46,20 @@ class MessageDeletedEvent implements ShouldBroadcastNow
 
     public function broadcastWith(): array
     {
-        $conversationService = app(ConversationService::class);
-        $recipient = $this->recipients[0] ?? null; // unsafe, refactor for multiple recipinets in group conversations
-
         return [
             'conversationId' => $this->conversation->id,
             'deletedId' => $this->deletedId,
             'wasLastMessage' => $this->wasLastMessage,
             'newLastMessage' => $this->newLastMessage,
-            'hasUnread' => $recipient
-                ? $conversationService->hasUnreadMessages($this->conversation, $recipient)
-                : false,
+            'hasUnread' => $this->hasUnread,
         ];
     }
 
     public function broadcastOn(): array
     {
-        $channels = [
-            new PrivateChannel('conversation.' . $this->conversation->id)
+        return [
+            new PrivateChannel('conversation.' . $this->conversation->id),
+            new PrivateChannel('user.' . $this->recipient->id),
         ];
-
-        foreach ($this->recipients as $recipient) {
-            $channels[] = new PrivateChannel("user.{$recipient->id}");
-        }
-
-        return $channels;
     }
 }

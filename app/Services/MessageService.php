@@ -24,6 +24,7 @@ class MessageService
         private readonly ParticipantRepositoryInterface $participantRepository,
         private readonly ConversationReadRepositoryInterface $readRepository,
         private readonly AttachmentsService $attachmentsService,
+        private readonly ConversationService $conversationService,
     ) {
     }
 
@@ -102,15 +103,24 @@ class MessageService
 
             $this->messageRepository->delete($message);
 
+            if ($wasLastMessage && $newLastMessage) {
+                $conversation->setRelation('lastMessage', $newLastMessage);
+            }
+
             $recipients = $this->participantRepository->getOtherParticipants($conversation, $message->user_id);
 
-            broadcast(new MessageDeletedEvent(
-                $conversation,
-                $messageId,
-                $wasLastMessage,
-                $newLastMessage,
-                $recipients->all()
-            ))->toOthers();
+            foreach ($recipients as $recipient) {
+                $hasUnread = $this->conversationService->hasUnreadMessages($conversation, $recipient);
+
+                broadcast(new MessageDeletedEvent(
+                    $conversation,
+                    $messageId,
+                    $wasLastMessage,
+                    $newLastMessage,
+                    $recipient,
+                    $hasUnread,
+                ))->toOthers();
+            }
 
             return [
                 'deletedId' => $messageId,
