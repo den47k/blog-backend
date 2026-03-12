@@ -2,11 +2,14 @@
 
 namespace App\Http\Resources;
 
+use App\Http\Resources\Concerns\ResolvesAvatarUrls;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class UserResource extends JsonResource
 {
+    use ResolvesAvatarUrls;
+
     public function toArray(Request $request): array
     {
         return [
@@ -14,23 +17,8 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'tag' => $this->tag,
             'email' => $this->email,
-            'avatar' => $this->avatar
-                ? [
-                    'original' => $this->privateAvatarUrl(
-                        $this->avatar['original'],
-                    ),
-                    'medium' => $this->privateAvatarUrl(
-                        $this->avatar['medium'],
-                    ),
-                    'small' => $this->privateAvatarUrl($this->avatar['small']),
-                ]
-                : null,
+            'avatar' => $this->resolveAvatarUrls($this->avatar),
             'isEmailVerified' => (bool) $this->email_verified_at,
         ];
-    }
-
-    private function privateAvatarUrl(string $path): string
-    {
-        return route('api.storage', ['path' => $path]);
     }
 }

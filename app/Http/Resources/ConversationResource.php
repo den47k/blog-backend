@@ -2,20 +2,27 @@
 
 namespace App\Http\Resources;
 
+use App\Http\Resources\Concerns\ResolvesAvatarUrls;
 use App\Models\Participant;
 use App\Models\User;
-use App\Services\ConversationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class ConversationResource extends JsonResource
 {
+    use ResolvesAvatarUrls;
     protected User $currentUser;
+    protected static array $unreadMap = [];
 
     public function __construct($resource)
     {
         parent::__construct($resource);
         $this->currentUser = auth()->user();
+    }
+
+    public static function withUnreadMap(array $map): void
+    {
+        static::$unreadMap = $map;
     }
 
     public static function forUser($resource, User $user): self
@@ -38,10 +45,7 @@ class ConversationResource extends JsonResource
             'lastMessage' => new MessageResource(
                 $this->whenLoaded('lastMessage'),
             ),
-            'hasUnread' => app(ConversationService::class)->hasUnreadMessages(
-                $this->resource,
-                $this->currentUser,
-            ),
+            'hasUnread' => static::$unreadMap[$this->id] ?? false,
             'avatar' => $this->getAvatar($isGroup, $otherParticipant),
             'type' => $this->conversation_type,
             'participants' => UserResource::collection(
@@ -84,37 +88,12 @@ class ConversationResource extends JsonResource
 
     private function getGroupAvatar(): ?array
     {
-        if (!$this->avatar) {
-            return null;
-        }
-
-        return [
-            'original' => $this->getAvatarUrl($this->avatar['original']),
-            'medium' => $this->getAvatarUrl($this->avatar['medium']),
-            'small' => $this->getAvatarUrl($this->avatar['small']),
-        ];
+        return $this->resolveAvatarUrls($this->avatar);
     }
 
     private function getUserAvatar(?Participant $participant): ?array
     {
-        if (!$participant?->user->avatar) {
-            return null;
-        }
-
-        return [
-            'original' => $this->getAvatarUrl(
-                $participant->user->avatar['original'],
-            ),
-            'medium' => $this->getAvatarUrl(
-                $participant->user->avatar['medium'],
-            ),
-            'small' => $this->getAvatarUrl($participant->user->avatar['small']),
-        ];
-    }
-
-    private function getAvatarUrl(string $path): string
-    {
-        return route('api.storage', ['path' => $path]);
+        return $this->resolveAvatarUrls($participant?->user->avatar);
     }
 
     private function getOtherParticipant(): ?Participant

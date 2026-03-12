@@ -44,11 +44,10 @@ class MessageService
             $this->conversationRepository->updateLastMessage($conversation, $message->id);
 
             $participant = $this->participantRepository->find($conversation, $user->id);
+            $recipients = $this->participantRepository->getOtherParticipants($conversation, $user->id);
 
             if (is_null($participant->joined_at)) {
                 $this->participantRepository->markUnjoinedAsJoined($conversation);
-
-                $recipients = $this->participantRepository->getOtherParticipants($conversation, $user->id);
 
                 if ($recipients->isNotEmpty()) {
                     $conversation->load(['participants.user', 'lastMessage']);
@@ -61,7 +60,6 @@ class MessageService
 
             $this->readRepository->markAsRead($conversation, $user);
 
-            $recipients = $this->participantRepository->getOtherParticipants($conversation, $user->id);
             broadcast(new MessageCreatedEvent($message->load('user', 'attachment', 'recipients'), $recipients->all()))->toOthers();
 
             return $message;

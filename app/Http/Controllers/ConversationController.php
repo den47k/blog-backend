@@ -21,14 +21,26 @@ class ConversationController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $conversations = $this->conversationService->getConversationsForUser($request->user());
+        $user = $request->user();
+        $conversations = $this->conversationService->getConversationsForUser($user);
+
+        ConversationResource::withUnreadMap(
+            $this->conversationService->getUnreadMap($user, $conversations)
+        );
+
         return ConversationResource::collection($conversations);
     }
 
     public function show(Request $request, string $tag): ConversationResource
     {
-        $conversation = $this->conversationService->getPrivateConversation($request->user(), $tag);
+        $user = $request->user();
+        $conversation = $this->conversationService->getPrivateConversation($user, $tag);
         Gate::authorize('view', $conversation);
+
+        ConversationResource::withUnreadMap(
+            $this->conversationService->getUnreadMap($user, [$conversation])
+        );
+
         return new ConversationResource($conversation);
     }
 
@@ -38,6 +50,10 @@ class ConversationController extends Controller
             $request->user(),
             $request->user_id,
             $request->should_join_now
+        );
+
+        ConversationResource::withUnreadMap(
+            $this->conversationService->getUnreadMap($request->user(), [$conversation])
         );
 
         return response()->json([

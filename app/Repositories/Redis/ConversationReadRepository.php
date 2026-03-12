@@ -31,6 +31,20 @@ class ConversationReadRepository implements ConversationReadRepositoryInterface
         return $timestamp ? \Carbon\Carbon::createFromTimestamp($timestamp) : null;
     }
 
+    public function getAllLastReadTimestamps(User $user): array
+    {
+        $raw = Redis::hgetall($this->getRedisLastReadKey($user));
+        $result = [];
+        $prefixLength = strlen(self::REDIS_CONVERSATION_PREFIX . ':');
+
+        foreach ($raw as $field => $timestamp) {
+            $conversationId = substr($field, $prefixLength);
+            $result[$conversationId] = \Carbon\Carbon::createFromTimestamp($timestamp);
+        }
+
+        return $result;
+    }
+
     private function getRedisLastReadKey(User $user): string
     {
         return self::REDIS_LAST_READ_PREFIX . ":{$user->id}:last_read";

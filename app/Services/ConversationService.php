@@ -92,6 +92,28 @@ class ConversationService
         $this->readRepository->markAsRead($conversation, $user);
     }
 
+    public function getUnreadMap(User $user, iterable $conversations): array
+    {
+        $timestamps = $this->readRepository->getAllLastReadTimestamps($user);
+        $map = [];
+
+        foreach ($conversations as $conversation) {
+            $lastMessage = $conversation->lastMessage;
+
+            if (!$lastMessage) {
+                $map[$conversation->id] = false;
+                continue;
+            }
+
+            $lastReadAt = $timestamps[$conversation->id] ?? null;
+            $map[$conversation->id] = $lastReadAt
+                ? $lastMessage->created_at->gt($lastReadAt)
+                : true;
+        }
+
+        return $map;
+    }
+
     public function hasUnreadMessages(Conversation $conversation, User $user): bool
     {
         $lastReadAt = $this->readRepository->getLastReadAt($user, $conversation);

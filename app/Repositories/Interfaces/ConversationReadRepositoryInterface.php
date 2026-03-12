@@ -11,4 +11,6 @@ interface ConversationReadRepositoryInterface
     public function markAsRead(Conversation $conversation, User $user): void;
 
     public function getLastReadAt(User $user, Conversation $conversation): ?Carbon;
+
+    public function getAllLastReadTimestamps(User $user): array;
 }
