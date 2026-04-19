@@ -44,8 +44,10 @@ class MessageService
 
             $this->conversationRepository->updateLastMessage($conversation, $message->id);
 
-            $participant = $this->participantRepository->find($conversation, $user->id);
-            $recipients = $this->participantRepository->getOtherParticipants($conversation, $user->id);
+            $conversation->loadMissing('participants.user');
+            $participants = $conversation->participants;
+            $participant = $participants->firstWhere('user_id', $user->id);
+            $recipients = $participants->where('user_id', '!=', $user->id)->pluck('user');
 
             if (is_null($participant->joined_at)) {
                 $this->participantRepository->markUnjoinedAsJoined($conversation);
@@ -61,7 +63,7 @@ class MessageService
 
             $this->readRepository->markAsRead($conversation, $user);
 
-            broadcast(new MessageCreatedEvent($message->load('user', 'attachment', 'recipients'), $recipients->all()))->toOthers();
+            broadcast(new MessageCreatedEvent($message->load('user', 'attachment'), $recipients->all()))->toOthers();
 
             return $message;
         });
@@ -78,7 +80,7 @@ class MessageService
             $conversation = $message->conversation;
             $recipients = $this->participantRepository->getOtherParticipants($conversation, $message->user_id);
 
-            broadcast(new MessageUpdatedEvent($message->load('user', 'attachment', 'recipients'), $recipients->all()))->toOthers();
+            broadcast(new MessageUpdatedEvent($message->load('user', 'attachment'), $recipients->all()))->toOthers();
 
             return $message;
         });

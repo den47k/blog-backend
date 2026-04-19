@@ -25,8 +25,7 @@ class ConversationRepository implements ConversationRepositoryInterface
         return Conversation::where('conversation_type', 'private')
             ->whereHas('participants', fn($q) => $q->where('user_id', $initiator->id))
             ->whereHas('participants', fn($q) => $q->where('user_id', $other->id))
-            ->withCount('participants')
-            ->having('participants_count', 2)
+            ->has('participants', '=', 2)
             ->with('lastMessage:id,content,created_at')
             ->first();
     }

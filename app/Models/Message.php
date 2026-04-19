@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use App\Models\Conversation;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Message extends Model
 {
@@ -46,13 +45,6 @@ class Message extends Model
     public function replies()
     {
         return $this->hasMany(Message::class, 'parent_id');
-    }
-
-    public function recipients(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class)
-            ->using(MessageUser::class)
-            ->withPivot('read_at');
     }
 
     public function attachment()

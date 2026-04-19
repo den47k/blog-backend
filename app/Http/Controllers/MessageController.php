@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\DeleteMessageRequest;
 use App\Http\Requests\StoreMessageRequest;
 use App\Http\Requests\UpdateMessageRequest;
 use App\Http\Resources\ConversationResource;
@@ -45,7 +44,7 @@ class MessageController extends Controller
         return response()->json([
             'message' => 'Message sent successfully',
             'data' => [
-                'message' => new MessageResource($message->load(['user', 'recipients', 'attachment'])),
+                'message' => new MessageResource($message->loadMissing(['user', 'attachment'])),
                 'conversation' => new ConversationResource($conversation)
             ]
         ], 201);
@@ -62,7 +61,7 @@ class MessageController extends Controller
 
         return response()->json([
             'message' => 'Message updated successfully',
-            'data' => new MessageResource($message->load(['user', 'recipients'])),
+            'data' => new MessageResource($message->loadMissing(['user'])),
         ]);
     }
 

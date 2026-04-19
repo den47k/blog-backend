@@ -13,17 +13,14 @@ return new class extends Migration
             $table->text('content')->nullable();
             $table->foreignUuid('conversation_id')->constrained()->cascadeOnDelete();
             $table->foreignUuid('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignUuid('parent_id')->nullable()->constrained('messages')->onDelete('set null');
+            $table->uuid('parent_id')->nullable();
             $table->boolean('is_pinned')->default(false);
             $table->timestamp('edited_at')->nullable();
             $table->timestamps();
         });
 
-        Schema::create('message_user', function (Blueprint $table) {
-            $table->foreignUuid('message_id')->constrained()->cascadeOnDelete();
-            $table->foreignUuid('user_id')->constrained()->cascadeOnDelete();
-            $table->timestamp('read_at')->nullable();
-            $table->primary(['message_id', 'user_id']);
+        Schema::table('messages', function (Blueprint $table) {
+            $table->foreign('parent_id')->references('id')->on('messages')->nullOnDelete();
         });
 
         Schema::table('conversations', function (Blueprint $table) {
@@ -37,6 +34,5 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('messages');
-        Schema::dropIfExists('message_user');
     }
 };

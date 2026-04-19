@@ -37,8 +37,8 @@ class UserRepository implements UserRepositoryInterface
     {
         return User::where('id', '!=', $excludeUserId)
             ->where(function ($q) use ($query) {
-                $q->where('name', 'LIKE', "%{$query}%")
-                    ->orWhere('tag', 'LIKE', "%{$query}%");
+                $q->where('name', 'ILIKE', "%{$query}%")
+                    ->orWhere('tag', 'ILIKE', "%{$query}%");
             })
             ->limit($limit)
             ->get();

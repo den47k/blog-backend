@@ -12,7 +12,7 @@ class MessageRepository implements MessageRepositoryInterface
     public function getPaginated(Conversation $conversation, int $perPage = 30): LengthAwarePaginator
     {
         return $conversation->messages()
-            ->with('user:id,name,tag', 'attachment', 'recipients')
+            ->with('user:id,name,tag', 'attachment')
             ->latest()
             ->paginate($perPage);
     }
