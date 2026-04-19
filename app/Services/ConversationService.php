@@ -9,7 +9,9 @@ use App\Repositories\Interfaces\ConversationReadRepositoryInterface;
 use App\Repositories\Interfaces\ConversationRepositoryInterface;
 use App\Repositories\Interfaces\ParticipantRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
+use App\Support\Cache\CacheHelper;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -57,6 +59,7 @@ class ConversationService
 
                     if ($participant && !$participant->joined_at) {
                         $participant->update(['joined_at' => now()]);
+                        Cache::forget(CacheHelper::userConversations($initiator->id));
                     }
                 }
                 return $existingConversation;
@@ -70,6 +73,10 @@ class ConversationService
             $this->participantRepository->add($conversation, $initiator, $should_join_now ? now() : null);
             $this->participantRepository->add($conversation, $other, null);
 
+            if ($should_join_now) {
+                Cache::forget(CacheHelper::userConversations($initiator->id));
+            }
+
             return $conversation;
         });
     }
@@ -77,13 +84,18 @@ class ConversationService
     public function deleteConversation(Conversation $conversation, User $user): void
     {
         DB::transaction(function () use ($conversation, $user) {
-            $userIds = $this->participantRepository->getJoinedIdsExcept($conversation, $user->id);
+            $participants = $this->participantRepository->getAll($conversation);
+            $affectedUserIds = $participants->pluck('user_id')->all();
+            $joinedOtherIds = $participants
+                ->filter(fn ($p) => $p->joined_at !== null && $p->user_id !== $user->id)
+                ->pluck('user_id')
+                ->all();
 
             $conversationId = $conversation->id;
             $this->conversationRepository->delete($conversation);
 
-            $recipients = $this->userRepository->findManyByIds($userIds);
-            broadcast(new ConversationDeletedEvent($conversationId, $recipients->all()));
+            $recipients = $this->userRepository->findManyByIds($joinedOtherIds);
+            broadcast(new ConversationDeletedEvent($conversationId, $recipients->all(), $affectedUserIds));
         });
     }
 

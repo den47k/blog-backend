@@ -6,6 +6,9 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Policies\ConversationPolicy;
 use App\Policies\MessagePolicy;
+use App\Repositories\Caching\CachingConversationRepository;
+use App\Repositories\Caching\CachingMessageRepository;
+use App\Repositories\Caching\CachingUserRepository;
 use App\Repositories\Redis\ConversationReadRepository;
 use App\Repositories\Eloquent\ConversationRepository;
 use App\Repositories\Eloquent\MessageRepository;
@@ -29,10 +32,16 @@ class AppServiceProvider extends ServiceProvider
         }
 
 
-        $this->app->bind(UserRepositoryInterface::class, UserRepository::class);
-        $this->app->bind(ConversationRepositoryInterface::class, ConversationRepository::class);
+        $this->app->bind(UserRepositoryInterface::class, fn ($app) => new CachingUserRepository(
+            $app->make(UserRepository::class),
+        ));
+        $this->app->bind(ConversationRepositoryInterface::class, fn ($app) => new CachingConversationRepository(
+            $app->make(ConversationRepository::class),
+        ));
+        $this->app->bind(MessageRepositoryInterface::class, fn ($app) => new CachingMessageRepository(
+            $app->make(MessageRepository::class),
+        ));
         $this->app->bind(ParticipantRepositoryInterface::class, ParticipantRepository::class);
-        $this->app->bind(MessageRepositoryInterface::class, MessageRepository::class);
         $this->app->bind(ConversationReadRepositoryInterface::class, ConversationReadRepository::class);
     }
 

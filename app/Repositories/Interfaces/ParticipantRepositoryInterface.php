@@ -13,7 +13,7 @@ interface ParticipantRepositoryInterface
 
     public function find(Conversation $conversation, string $userId): ?Participant;
 
-    public function getJoinedIdsExcept(Conversation $conversation, string $excludeUserId): array;
+    public function getAll(Conversation $conversation): Collection;
 
     public function getOtherParticipants(Conversation $conversation, string $excludeUserId): Collection;
 

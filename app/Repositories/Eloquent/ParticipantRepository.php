@@ -25,13 +25,10 @@ class ParticipantRepository implements ParticipantRepositoryInterface
             ->first();
     }
 
-    public function getJoinedIdsExcept(Conversation $conversation, string $excludeUserId): array
+    public function getAll(Conversation $conversation): Collection
     {
         return $conversation->participants()
-            ->whereNotNull('joined_at')
-            ->where('user_id', '!=', $excludeUserId)
-            ->pluck('user_id')
-            ->toArray();
+            ->get(['user_id', 'joined_at']);
     }
 
     public function getOtherParticipants(Conversation $conversation, string $excludeUserId): Collection

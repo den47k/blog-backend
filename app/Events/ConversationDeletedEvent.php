@@ -14,11 +14,13 @@ class ConversationDeletedEvent implements ShouldBroadcastNow
 
     public string $conversationId;
     public array $recipients;
+    public array $affectedUserIds;
 
-    public function __construct(string $conversationId, array $recipients = [])
+    public function __construct(string $conversationId, array $recipients = [], array $affectedUserIds = [])
     {
         $this->conversationId = $conversationId;
         $this->recipients = $recipients;
+        $this->affectedUserIds = $affectedUserIds;
     }
 
     public function broadcastAs()

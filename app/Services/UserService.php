@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\UserUpdatedEvent;
 use App\Models\User;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Http\UploadedFile;
@@ -30,12 +31,17 @@ class UserService
             $response['avatar'] = $this->avatarService->getUrls($user->avatar);
         }
 
+        if ($response !== []) {
+            event(new UserUpdatedEvent($user));
+        }
+
         return $response;
     }
 
     public function deleteAvatar(User $user): void
     {
         $user->deleteOldAvatar();
+        event(new UserUpdatedEvent($user));
     }
 
     public function searchUsers(string $query, string $excludeUserId): Collection
