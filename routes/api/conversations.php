@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\ConversationController;
-use App\Http\Controllers\MessageController;
+use App\Http\Controllers\Messaging\ConversationController;
+use App\Http\Controllers\Messaging\MessageController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('conversations')->group(function () {

@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\StorageController;
+use App\Http\Controllers\Storage\StorageController;
 use Illuminate\Support\Facades\Route;
 
 require __DIR__ . '/api/auth.php';

@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Messaging;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\CreatePrivateConversationRequest;
 use App\Http\Resources\ConversationResource;
 use App\Models\Conversation;
