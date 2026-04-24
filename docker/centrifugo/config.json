@@ -1,0 +1,20 @@
+{
+    "allowed_origins": ["*"],
+    "health": true,
+    "engine": "redis",
+    "redis_address": "redis://redis:6379/3",
+    "namespaces": [
+        {
+            "name": "user",
+            "presence": false,
+            "history_size": 0,
+            "allow_subscribe_for_client": false
+        },
+        {
+            "name": "conv",
+            "presence": false,
+            "history_size": 0,
+            "allow_subscribe_for_client": false
+        }
+    ]
+}

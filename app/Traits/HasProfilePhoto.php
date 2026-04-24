@@ -2,7 +2,7 @@
 
 namespace App\Traits;
 
-use App\Services\AvatarService;
+use App\Services\User\AvatarService;
 use Illuminate\Http\UploadedFile;
 
 trait HasProfilePhoto
