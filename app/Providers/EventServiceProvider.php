@@ -2,12 +2,12 @@
 
 namespace App\Providers;
 
-use App\Events\ConversationCreatedEvent;
-use App\Events\ConversationDeletedEvent;
-use App\Events\MessageCreatedEvent;
-use App\Events\MessageDeletedEvent;
-use App\Events\MessageUpdatedEvent;
-use App\Events\UserUpdatedEvent;
+use App\Events\Conversation\ConversationCreatedEvent;
+use App\Events\Conversation\ConversationDeletedEvent;
+use App\Events\Message\MessageCreatedEvent;
+use App\Events\Message\MessageDeletedEvent;
+use App\Events\Message\MessageUpdatedEvent;
+use App\Events\User\UserUpdatedEvent;
 use App\Listeners\Cache\InvalidateOnConversationCreated;
 use App\Listeners\Cache\InvalidateOnConversationDeleted;
 use App\Listeners\Cache\InvalidateOnMessageCreated;

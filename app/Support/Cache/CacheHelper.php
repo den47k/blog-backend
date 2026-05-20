@@ -8,10 +8,13 @@ use Illuminate\Support\Facades\Cache;
 class CacheHelper
 {
     public const TTL_USER_PROFILE = 900;
+
     public const TTL_USER_CONVERSATIONS = 60;
+
     public const TTL_CONV_MESSAGES_PAGE_1 = 300;
 
     private const LOCK_TIMEOUT = 5;
+
     private const LOCK_WAIT = 3;
 
     public static function userProfile(string $userId): string

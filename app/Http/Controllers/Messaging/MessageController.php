@@ -3,25 +3,23 @@
 namespace App\Http\Controllers\Messaging;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreMessageRequest;
-use App\Http\Requests\UpdateMessageRequest;
-use App\Http\Resources\ConversationResource;
-use App\Http\Resources\MessageResource;
+use App\Http\Requests\Message\StoreMessageRequest;
+use App\Http\Requests\Message\UpdateMessageRequest;
+use App\Http\Resources\Conversation\ConversationResource;
+use App\Http\Resources\Message\MessageResource;
 use App\Models\Conversation;
 use App\Models\Message;
-use Illuminate\Http\Request;
 use App\Services\Messaging\MessageService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Log;
 
 class MessageController extends Controller
 {
     public function __construct(
         private readonly MessageService $messageService
-    ) {
-    }
+    ) {}
 
     public function index(Request $request, Conversation $conversation): AnonymousResourceCollection
     {
@@ -46,8 +44,8 @@ class MessageController extends Controller
             'message' => 'Message sent successfully',
             'data' => [
                 'message' => new MessageResource($message->loadMissing(['user', 'attachment'])),
-                'conversation' => new ConversationResource($conversation)
-            ]
+                'conversation' => new ConversationResource($conversation),
+            ],
         ], 201);
     }
 

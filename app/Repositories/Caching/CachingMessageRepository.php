@@ -12,9 +12,7 @@ class CachingMessageRepository implements MessageRepositoryInterface
 {
     private const DEFAULT_PER_PAGE = 30;
 
-    public function __construct(private readonly MessageRepositoryInterface $inner)
-    {
-    }
+    public function __construct(private readonly MessageRepositoryInterface $inner) {}
 
     public function getPaginated(Conversation $conversation, int $perPage = 30): LengthAwarePaginator
     {

@@ -2,7 +2,7 @@
 
 namespace App\Broadcasting;
 
-use App\Services\Centrifugo\CentrifugoClient;
+use App\Services\Realtime\CentrifugoClient;
 use Illuminate\Broadcasting\Broadcasters\Broadcaster;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -12,8 +12,7 @@ class CentrifugoBroadcaster extends Broadcaster
     public function __construct(
         private readonly CentrifugoClient $client,
         private readonly array $namespaceMap,
-    ) {
-    }
+    ) {}
 
     public function broadcast(array $channels, $event, array $payload = [])
     {
@@ -79,9 +78,10 @@ class CentrifugoBroadcaster extends Broadcaster
             : $laravelChannel;
 
         foreach ($this->namespaceMap as $prefix => $namespace) {
-            if (str_starts_with($name, $prefix . '.')) {
+            if (str_starts_with($name, $prefix.'.')) {
                 $id = substr($name, strlen($prefix) + 1);
-                return $namespace . ':' . $id;
+
+                return $namespace.':'.$id;
             }
         }
 
@@ -91,9 +91,10 @@ class CentrifugoBroadcaster extends Broadcaster
     private function reverseMapChannelName(string $centrifugoChannel): ?string
     {
         foreach ($this->namespaceMap as $prefix => $namespace) {
-            if (str_starts_with($centrifugoChannel, $namespace . ':')) {
+            if (str_starts_with($centrifugoChannel, $namespace.':')) {
                 $id = substr($centrifugoChannel, strlen($namespace) + 1);
-                return $prefix . '.' . $id;
+
+                return $prefix.'.'.$id;
             }
         }
 

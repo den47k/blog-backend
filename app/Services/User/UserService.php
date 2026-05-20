@@ -2,7 +2,7 @@
 
 namespace App\Services\User;
 
-use App\Events\UserUpdatedEvent;
+use App\Events\User\UserUpdatedEvent;
 use App\Models\User;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Http\UploadedFile;
@@ -13,8 +13,7 @@ class UserService
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
         private readonly AvatarService $avatarService,
-    ) {
-    }
+    ) {}
 
     public function updateProfile(User $user, ?string $name, ?UploadedFile $avatar): array
     {

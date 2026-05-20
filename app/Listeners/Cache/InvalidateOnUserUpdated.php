@@ -2,7 +2,7 @@
 
 namespace App\Listeners\Cache;
 
-use App\Events\UserUpdatedEvent;
+use App\Events\User\UserUpdatedEvent;
 use App\Support\Cache\CacheHelper;
 use Illuminate\Support\Facades\Cache;
 

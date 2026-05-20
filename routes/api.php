@@ -3,13 +3,15 @@
 use App\Http\Controllers\Storage\StorageController;
 use Illuminate\Support\Facades\Route;
 
-require __DIR__ . '/api/auth.php';
-require __DIR__ . '/api/mobile.php';
+require __DIR__.'/api/auth.php';
+require __DIR__.'/api/two_factor.php';
+require __DIR__.'/api/oauth.php';
 
-Route::middleware(['auth:sanctum', 'verified'])->group(function () {
-    require __DIR__ . '/api/users.php';
-    require __DIR__ . '/api/conversations.php';
-    require __DIR__ . '/api/realtime.php';
+Route::middleware(['auth:sanctum', 'abilities:*', 'verified'])->group(function () {
+    require __DIR__.'/api/devices.php';
+    require __DIR__.'/api/users.php';
+    require __DIR__.'/api/conversations.php';
+    require __DIR__.'/api/realtime.php';
 
     Route::get('/storage/{path}', StorageController::class)
         ->where('path', '.*')
@@ -17,12 +19,12 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 });
 
 /* Test routes */
-Route::get('/test', fn() => response()->json([
+Route::get('/test', fn () => response()->json([
     'message' => 'test message',
     'time' => now()->toDateTimeString(),
 ]));
 
-Route::post('/test', fn() => response()->json([
+Route::post('/test', fn () => response()->json([
     'message' => 'test message',
     'time' => now()->toDateTimeString(),
 ]));

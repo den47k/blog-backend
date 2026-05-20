@@ -28,7 +28,6 @@ class MessageAttachment extends Model
         return $this->belongsTo(Message::class);
     }
 
-
     protected function urls(): Attribute
     {
         return Attribute::make(
@@ -36,12 +35,13 @@ class MessageAttachment extends Model
                 $urls = [];
                 $fileData = $this->file_data;
 
-                if (!empty($fileData['original'])) {
+                if (! empty($fileData['original'])) {
                     $urls['original'] = route('api.storage', ['path' => $fileData['original']]);
                 }
-                if (!empty($fileData['thumbnail'])) {
+                if (! empty($fileData['thumbnail'])) {
                     $urls['thumbnail'] = route('api.storage', ['path' => $fileData['thumbnail']]);
                 }
+
                 return $urls;
             }
         );

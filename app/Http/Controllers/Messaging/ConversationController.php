@@ -3,10 +3,9 @@
 namespace App\Http\Controllers\Messaging;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\CreatePrivateConversationRequest;
-use App\Http\Resources\ConversationResource;
+use App\Http\Requests\Conversation\CreatePrivateConversationRequest;
+use App\Http\Resources\Conversation\ConversationResource;
 use App\Models\Conversation;
-use App\Models\User;
 use App\Services\Messaging\ConversationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,8 +16,7 @@ class ConversationController extends Controller
 {
     public function __construct(
         private readonly ConversationService $conversationService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -59,7 +57,7 @@ class ConversationController extends Controller
 
         return response()->json([
             'message' => 'Conversation created successfully',
-            'conversation' => new ConversationResource($conversation)
+            'conversation' => new ConversationResource($conversation),
         ], 201);
     }
 
@@ -67,6 +65,7 @@ class ConversationController extends Controller
     {
         Gate::authorize('delete', $conversation);
         $this->conversationService->deleteConversation($conversation, $request->user());
+
         return response()->json(['message' => 'Conversation deleted successfully']);
     }
 
@@ -74,6 +73,7 @@ class ConversationController extends Controller
     {
         Gate::authorize('markAsRead', $conversation);
         $this->conversationService->markConversationAsRead($conversation, $request->user());
+
         return response()->json(['message' => 'Conversation marked as read.']);
     }
 }

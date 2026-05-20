@@ -2,7 +2,7 @@
 
 namespace App\Listeners\Cache;
 
-use App\Events\MessageCreatedEvent;
+use App\Events\Message\MessageCreatedEvent;
 use App\Support\Cache\CacheHelper;
 use Illuminate\Support\Facades\Cache;
 

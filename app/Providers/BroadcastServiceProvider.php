@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use App\Broadcasting\CentrifugoBroadcaster;
-use App\Services\Centrifugo\CentrifugoClient;
+use App\Services\Realtime\CentrifugoClient;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\ServiceProvider;
 
@@ -29,8 +29,7 @@ class BroadcastServiceProvider extends ServiceProvider
     {
         Broadcast::extend(
             'centrifugo',
-            fn($app) =>
-            new CentrifugoBroadcaster(
+            fn ($app) => new CentrifugoBroadcaster(
                 $app->make(CentrifugoClient::class),
                 $app['config']->get('centrifugo.namespaces', []),
             )

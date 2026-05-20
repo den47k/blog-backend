@@ -13,12 +13,13 @@ use Intervention\Image\ImageManager;
 class AttachmentsService
 {
     protected $disk;
+
     protected $imageManager;
 
     public function __construct()
     {
         $this->disk = Storage::disk('s3');
-        $this->imageManager = new ImageManager(new Driver());
+        $this->imageManager = new ImageManager(new Driver);
     }
 
     public function storeForMessage(Message $message, UploadedFile $file): void
@@ -43,23 +44,22 @@ class AttachmentsService
         $message->attachment()->create(['file_data' => $fileData]);
     }
 
-
     public function deleteFile(MessageAttachment $attachment): void
     {
         $pathsToDelete = [];
 
-        if (!empty($attachment->file_data['original'])) {
+        if (! empty($attachment->file_data['original'])) {
             $pathsToDelete[] = $attachment->file_data['original'];
         }
-        if (!empty($attachment->file_data['thumbnail'])) {
+        if (! empty($attachment->file_data['thumbnail'])) {
             $pathsToDelete[] = $attachment->file_data['thumbnail'];
         }
 
-        if (!empty($pathsToDelete)) {
+        if (! empty($pathsToDelete)) {
             try {
                 $this->disk->delete($pathsToDelete);
             } catch (\Exception $e) {
-                Log::error("Failed to delete attachment files from storage: " . $e->getMessage());
+                Log::error('Failed to delete attachment files from storage: '.$e->getMessage());
             }
         }
     }
@@ -67,6 +67,7 @@ class AttachmentsService
     protected function getFileType(UploadedFile $file): string
     {
         $mime = $file->getMimeType();
+
         return match (true) {
             str_starts_with($mime, 'image/') => 'image',
             str_starts_with($mime, 'video/') => 'video',
@@ -81,11 +82,13 @@ class AttachmentsService
             $thumbnail = $this->imageManager->read($file->getRealPath())
                 ->resize(300, 300)
                 ->toJpeg();
-            $thumbPath = "{$path}/thumb_" . $file->hashName() . '.jpg';
+            $thumbPath = "{$path}/thumb_".$file->hashName().'.jpg';
             $this->disk->put($thumbPath, $thumbnail->toString(), 'public');
+
             return $thumbPath;
         } catch (\Exception $e) {
-            Log::error("Thumbnail generation failed: " . $e->getMessage());
+            Log::error('Thumbnail generation failed: '.$e->getMessage());
+
             return null;
         }
     }

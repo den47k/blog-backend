@@ -2,10 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use App\Models\Conversation;
-use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 
 class Message extends Model
 {
@@ -18,12 +16,12 @@ class Message extends Model
         'user_id',
         'parent_id',
         'is_pinned',
-        'edited_at'
+        'edited_at',
     ];
 
     protected $casts = [
         'edited_at' => 'datetime',
-        'is_pinned' => 'boolean'
+        'is_pinned' => 'boolean',
     ];
 
     // Relationships

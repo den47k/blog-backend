@@ -2,16 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use App\Models\User;
-use App\Models\Participant;
-use App\Models\Message;
+use Illuminate\Database\Eloquent\Model;
 
 class Conversation extends Model
 {
     use HasUuids;
-
 
     // Model attribute configuration
     protected $fillable = [
@@ -20,9 +16,8 @@ class Conversation extends Model
         'description',
         'creator_id',
         'is_public',
-        'last_message_id'
+        'last_message_id',
     ];
-
 
     // Relationships
     public function creator()

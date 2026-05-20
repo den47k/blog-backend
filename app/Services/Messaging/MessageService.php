@@ -2,11 +2,11 @@
 
 namespace App\Services\Messaging;
 
-use App\Events\ConversationCreatedEvent;
-use App\Events\MessageCreatedEvent;
-use App\Events\MessageDeletedEvent;
-use App\Events\MessageUpdatedEvent;
-use App\Http\Resources\MessageResource;
+use App\Events\Conversation\ConversationCreatedEvent;
+use App\Events\Message\MessageCreatedEvent;
+use App\Events\Message\MessageDeletedEvent;
+use App\Events\Message\MessageUpdatedEvent;
+use App\Http\Resources\Message\MessageResource;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
@@ -25,8 +25,7 @@ class MessageService
         private readonly ConversationReadRepositoryInterface $readRepository,
         private readonly AttachmentsService $attachmentsService,
         private readonly ConversationService $conversationService,
-    ) {
-    }
+    ) {}
 
     public function getMessagesForConversation(Conversation $conversation, int $perPage = 30)
     {
@@ -74,7 +73,7 @@ class MessageService
         return DB::transaction(function () use ($message, $data) {
             $this->messageRepository->update($message, [
                 'content' => $data['content'],
-                'edited_at' => now()
+                'edited_at' => now(),
             ]);
 
             $conversation = $message->conversation;
@@ -130,7 +129,7 @@ class MessageService
                 'wasLastMessage' => $wasLastMessage,
                 'newLastMessage' => $newLastMessage
                     ? new MessageResource($newLastMessage)
-                    : null
+                    : null,
             ];
         });
     }

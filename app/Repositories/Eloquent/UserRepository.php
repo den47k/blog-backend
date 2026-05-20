@@ -23,6 +23,11 @@ class UserRepository implements UserRepositoryInterface
         return User::where('email', $email)->first();
     }
 
+    public function findByEmailAnyStatus(string $email): ?User
+    {
+        return User::where('email', $email)->first();
+    }
+
     public function findManyByIds(array $ids): Collection
     {
         return User::whereIn('id', $ids)->get();
@@ -31,6 +36,20 @@ class UserRepository implements UserRepositoryInterface
     public function create(array $data): User
     {
         return User::create($data);
+    }
+
+    public function update(User $user, array $data): User
+    {
+        $user->update($data);
+
+        return $user->refresh();
+    }
+
+    public function markEmailVerified(User $user): User
+    {
+        $user->forceFill(['email_verified_at' => now()])->save();
+
+        return $user;
     }
 
     public function search(string $query, string $excludeUserId, int $limit = 10): Collection

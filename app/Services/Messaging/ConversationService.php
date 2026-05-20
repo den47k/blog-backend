@@ -2,7 +2,7 @@
 
 namespace App\Services\Messaging;
 
-use App\Events\ConversationDeletedEvent;
+use App\Events\Conversation\ConversationDeletedEvent;
 use App\Models\Conversation;
 use App\Models\User;
 use App\Repositories\Interfaces\ConversationReadRepositoryInterface;
@@ -22,8 +22,7 @@ class ConversationService
         private readonly UserRepositoryInterface $userRepository,
         private readonly ParticipantRepositoryInterface $participantRepository,
         private readonly ConversationReadRepositoryInterface $readRepository,
-    ) {
-    }
+    ) {}
 
     public function getConversationsForUser(User $user)
     {
@@ -35,7 +34,7 @@ class ConversationService
         $targetUser = $this->userRepository->findByTag($tag);
         $conversation = $this->conversationRepository->findExistingPrivate($user, $targetUser);
 
-        if (!$conversation) {
+        if (! $conversation) {
             throw new ModelNotFoundException('Conversation not found');
         }
 
@@ -57,11 +56,12 @@ class ConversationService
                 if ($should_join_now) {
                     $participant = $this->participantRepository->find($existingConversation, $initiator->id);
 
-                    if ($participant && !$participant->joined_at) {
+                    if ($participant && ! $participant->joined_at) {
                         $participant->update(['joined_at' => now()]);
                         Cache::forget(CacheHelper::userConversations($initiator->id));
                     }
                 }
+
                 return $existingConversation;
             }
 
@@ -112,8 +112,9 @@ class ConversationService
         foreach ($conversations as $conversation) {
             $lastMessage = $conversation->lastMessage;
 
-            if (!$lastMessage) {
+            if (! $lastMessage) {
                 $map[$conversation->id] = false;
+
                 continue;
             }
 
@@ -130,7 +131,7 @@ class ConversationService
     {
         $lastMessage = $conversation->lastMessage;
 
-        if (!$lastMessage) {
+        if (! $lastMessage) {
             return false;
         }
 

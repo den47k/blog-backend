@@ -2,10 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use App\Models\Conversation;
-use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 
 class Participant extends Model
 {
@@ -19,14 +17,14 @@ class Participant extends Model
         'joined_at',
         'last_read_at',
         'is_muted',
-        'is_banned'
+        'is_banned',
     ];
 
     protected $casts = [
         'joined_at' => 'datetime',
         'last_read_at' => 'datetime',
         'is_muted' => 'boolean',
-        'is_banned' => 'boolean'
+        'is_banned' => 'boolean',
     ];
 
     // Relationships

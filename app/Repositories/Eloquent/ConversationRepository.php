@@ -14,7 +14,7 @@ class ConversationRepository implements ConversationRepositoryInterface
         return $user->activeConversations()
             ->with([
                 'participants.user:id,name,tag,avatar',
-                'lastMessage:id,content,created_at'
+                'lastMessage:id,content,created_at',
             ])
             ->latest('updated_at')
             ->get();
@@ -23,8 +23,8 @@ class ConversationRepository implements ConversationRepositoryInterface
     public function findExistingPrivate(User $initiator, User $other): ?Conversation
     {
         return Conversation::where('conversation_type', 'private')
-            ->whereHas('participants', fn($q) => $q->where('user_id', $initiator->id))
-            ->whereHas('participants', fn($q) => $q->where('user_id', $other->id))
+            ->whereHas('participants', fn ($q) => $q->where('user_id', $initiator->id))
+            ->whereHas('participants', fn ($q) => $q->where('user_id', $other->id))
             ->has('participants', '=', 2)
             ->with('lastMessage:id,content,created_at')
             ->first();

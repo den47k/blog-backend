@@ -10,7 +10,7 @@ class StorageController extends Controller
 {
     public function __invoke(Request $request, string $path)
     {
-        if (!Storage::disk('s3')->exists($path)) {
+        if (! Storage::disk('s3')->exists($path)) {
             abort(404);
         }
 

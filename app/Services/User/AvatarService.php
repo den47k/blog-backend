@@ -11,12 +11,13 @@ use Intervention\Image\ImageManager;
 class AvatarService
 {
     protected $disk;
+
     protected $imageManager;
 
     public function __construct()
     {
         $this->disk = Storage::disk('s3');
-        $this->imageManager = new ImageManager(new Driver());
+        $this->imageManager = new ImageManager(new Driver);
     }
 
     public function store(UploadedFile $file, string $userId): array
@@ -25,7 +26,7 @@ class AvatarService
 
         $originalPath = $this->disk->putFile($path, $file, [
             'visibility' => 'public',
-            'name' => "original." . $file->extension()
+            'name' => 'original.'.$file->extension(),
         ]);
 
         $medium = $this->imageManager->read($file->getRealPath())
@@ -41,7 +42,7 @@ class AvatarService
         return [
             'original' => $originalPath,
             'medium' => "{$path}/medium.jpg",
-            'small' => "{$path}/small.jpg"
+            'small' => "{$path}/small.jpg",
         ];
     }
 
@@ -50,7 +51,7 @@ class AvatarService
         try {
             $this->disk->delete(array_values($avatarPaths));
         } catch (\Exception $e) {
-            Log::error("Failed to delete avatar files: " . $e->getMessage());
+            Log::error('Failed to delete avatar files: '.$e->getMessage());
         }
     }
 
@@ -59,7 +60,7 @@ class AvatarService
         return [
             'original' => route('api.storage', ['path' => $avatarPaths['original']]),
             'medium' => route('api.storage', ['path' => $avatarPaths['medium']]),
-            'small' => route('api.storage', ['path' => $avatarPaths['small']])
+            'small' => route('api.storage', ['path' => $avatarPaths['small']]),
         ];
     }
 }

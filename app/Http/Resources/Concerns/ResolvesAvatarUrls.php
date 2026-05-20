@@ -6,7 +6,7 @@ trait ResolvesAvatarUrls
 {
     private function resolveAvatarUrls(?array $avatar): ?array
     {
-        if (!$avatar) {
+        if (! $avatar) {
             return null;
         }
 

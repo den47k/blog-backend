@@ -10,9 +10,7 @@ use Illuminate\Support\Collection;
 
 class CachingConversationRepository implements ConversationRepositoryInterface
 {
-    public function __construct(private readonly ConversationRepositoryInterface $inner)
-    {
-    }
+    public function __construct(private readonly ConversationRepositoryInterface $inner) {}
 
     public function getForUser(User $user): Collection
     {

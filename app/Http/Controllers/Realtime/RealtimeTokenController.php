@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Realtime;
 
 use App\Broadcasting\CentrifugoBroadcaster;
 use App\Http\Controllers\Controller;
-use App\Services\Centrifugo\CentrifugoClient;
+use App\Services\Realtime\CentrifugoClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
@@ -13,8 +13,7 @@ class RealtimeTokenController extends Controller
 {
     public function __construct(
         private readonly CentrifugoClient $client,
-    ) {
-    }
+    ) {}
 
     public function connect(Request $request): JsonResponse
     {

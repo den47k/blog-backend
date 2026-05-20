@@ -2,7 +2,7 @@
 
 namespace App\Listeners\Cache;
 
-use App\Events\ConversationDeletedEvent;
+use App\Events\Conversation\ConversationDeletedEvent;
 use App\Support\Cache\CacheHelper;
 use Illuminate\Support\Facades\Cache;
 
