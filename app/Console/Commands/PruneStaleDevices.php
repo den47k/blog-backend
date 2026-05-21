@@ -6,7 +6,7 @@ use App\Models\Device;
 use Illuminate\Console\Command;
 use Laravel\Sanctum\PersonalAccessToken;
 
-class PruneStaleDevicesCommand extends Command
+class PruneStaleDevices extends Command
 {
     protected $signature = 'auth:prune-stale-devices {--days=90}';
 

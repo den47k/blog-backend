@@ -9,3 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('auth:prune-stale-devices')->daily();
+Schedule::command('auth:prune-expired-email-otps')->daily();
+Schedule::command('users:prune')->daily();
