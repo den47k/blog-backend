@@ -4,11 +4,11 @@ namespace App\Repositories\Interfaces;
 
 use App\Models\Conversation;
 use App\Models\Message;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 
 interface MessageRepositoryInterface
 {
-    public function getPaginated(Conversation $conversation, int $perPage = 30): LengthAwarePaginator;
+    public function getPaginated(Conversation $conversation, int $perPage = 30): CursorPaginator;
 
     public function create(Conversation $conversation, string $userId, ?string $content): Message;
 

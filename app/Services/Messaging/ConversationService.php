@@ -24,9 +24,9 @@ class ConversationService
         private readonly ConversationReadRepositoryInterface $readRepository,
     ) {}
 
-    public function getConversationsForUser(User $user)
+    public function getConversationsForUser(User $user, int $perPage = 20)
     {
-        return $this->conversationRepository->getForUser($user);
+        return $this->conversationRepository->getForUser($user, $perPage);
     }
 
     public function getPrivateConversation(User $user, string $tag): Conversation

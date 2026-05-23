@@ -5,16 +5,17 @@ namespace App\Repositories\Eloquent;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Repositories\Interfaces\MessageRepositoryInterface;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 
 class MessageRepository implements MessageRepositoryInterface
 {
-    public function getPaginated(Conversation $conversation, int $perPage = 30): LengthAwarePaginator
+    public function getPaginated(Conversation $conversation, int $perPage = 30): CursorPaginator
     {
         return $conversation->messages()
             ->with('user:id,name,tag', 'attachment')
-            ->latest()
-            ->paginate($perPage);
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->cursorPaginate($perPage);
     }
 
     public function create(Conversation $conversation, string $userId, ?string $content): Message

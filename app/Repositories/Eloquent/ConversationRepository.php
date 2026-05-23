@@ -5,19 +5,20 @@ namespace App\Repositories\Eloquent;
 use App\Models\Conversation;
 use App\Models\User;
 use App\Repositories\Interfaces\ConversationRepositoryInterface;
-use Illuminate\Support\Collection;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 
 class ConversationRepository implements ConversationRepositoryInterface
 {
-    public function getForUser(User $user): Collection
+    public function getForUser(User $user, int $perPage = 20): CursorPaginator
     {
         return $user->activeConversations()
             ->with([
                 'participants.user:id,name,tag,avatar',
                 'lastMessage:id,content,created_at',
             ])
-            ->latest('updated_at')
-            ->get();
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->cursorPaginate($perPage);
     }
 
     public function findExistingPrivate(User $initiator, User $other): ?Conversation

@@ -6,7 +6,7 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Repositories\Interfaces\MessageRepositoryInterface;
 use App\Support\Cache\CacheHelper;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 
 class CachingMessageRepository implements MessageRepositoryInterface
 {
@@ -14,9 +14,9 @@ class CachingMessageRepository implements MessageRepositoryInterface
 
     public function __construct(private readonly MessageRepositoryInterface $inner) {}
 
-    public function getPaginated(Conversation $conversation, int $perPage = 30): LengthAwarePaginator
+    public function getPaginated(Conversation $conversation, int $perPage = 30): CursorPaginator
     {
-        if ($perPage !== self::DEFAULT_PER_PAGE || (int) request()->input('page', 1) !== 1) {
+        if ($perPage !== self::DEFAULT_PER_PAGE || request()->filled('cursor')) {
             return $this->inner->getPaginated($conversation, $perPage);
         }
 
