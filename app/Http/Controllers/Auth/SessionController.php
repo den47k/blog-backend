@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Enums\TokenAbility;
 use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
@@ -11,12 +10,9 @@ use App\Services\Auth\CredentialAuthenticator;
 use App\Services\Auth\DeviceService;
 use App\Services\Auth\TokenService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 
 class SessionController extends Controller
 {
-    public const TWO_FACTOR_CHALLENGE_TTL_MINUTES = 5;
-
     public function __construct(
         private readonly CredentialAuthenticator $credentialAuthenticator,
         private readonly TokenService $tokenService,
@@ -36,23 +32,16 @@ class SessionController extends Controller
             ], 403);
         }
 
-        if ($user->hasTwoFactorEnabled()) {
-            $challenge = $this->tokenService->issueToken(
-                $user,
-                '2fa-challenge',
-                [TokenAbility::TwoFactorPending->value],
-                Carbon::now()->addMinutes(self::TWO_FACTOR_CHALLENGE_TTL_MINUTES),
-            );
+        $result = $this->deviceService->issueOrChallenge($user, $request->deviceName(), $request);
 
+        if ($result['kind'] === '2fa_required') {
             return response()->json([
                 'requires_2fa' => true,
-                'challenge_token' => $challenge,
+                'challenge_token' => $result['challenge_token'],
                 'token_type' => 'Bearer',
-                'expires_in' => self::TWO_FACTOR_CHALLENGE_TTL_MINUTES * 60,
+                'expires_in' => $result['expires_in'],
             ]);
         }
-
-        $result = $this->deviceService->issueForUser($user, $request->deviceName(), $request);
 
         return response()->json([
             'user' => new AuthenticatedUserResource($user),

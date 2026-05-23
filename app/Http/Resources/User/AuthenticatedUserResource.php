@@ -11,6 +11,7 @@ class AuthenticatedUserResource extends UserResource
         return parent::toArray($request) + [
             'email' => $this->email,
             'isEmailVerified' => (bool) $this->email_verified_at,
+            'twoFactorEnabled' => $this->hasTwoFactorEnabled(),
         ];
     }
 }

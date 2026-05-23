@@ -26,7 +26,16 @@ class OAuthController extends Controller
         $deviceName = $request->query('device_name', $provider);
 
         if ($result['kind'] === 'logged_in') {
-            $issued = $this->deviceService->issueForUser($result['user'], $deviceName, $request);
+            $issued = $this->deviceService->issueOrChallenge($result['user'], $deviceName, $request);
+
+            if ($issued['kind'] === '2fa_required') {
+                return response()->json([
+                    'requires_2fa' => true,
+                    'challenge_token' => $issued['challenge_token'],
+                    'token_type' => 'Bearer',
+                    'expires_in' => $issued['expires_in'],
+                ]);
+            }
 
             return response()->json([
                 'user' => new AuthenticatedUserResource($result['user']),
@@ -68,11 +77,20 @@ class OAuthController extends Controller
         );
 
         if ($result['kind'] === 'logged_in') {
-            $issued = $this->deviceService->issueForUser(
+            $issued = $this->deviceService->issueOrChallenge(
                 $result['user'],
                 $request->input('device_name'),
                 $request,
             );
+
+            if ($issued['kind'] === '2fa_required') {
+                return response()->json([
+                    'requires_2fa' => true,
+                    'challenge_token' => $issued['challenge_token'],
+                    'token_type' => 'Bearer',
+                    'expires_in' => $issued['expires_in'],
+                ]);
+            }
 
             return response()->json([
                 'user' => new AuthenticatedUserResource($result['user']),

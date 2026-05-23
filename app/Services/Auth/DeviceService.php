@@ -2,6 +2,7 @@
 
 namespace App\Services\Auth;
 
+use App\Enums\TokenAbility;
 use App\Events\Auth\DeviceRegistered;
 use App\Events\Auth\DeviceRevoked;
 use App\Models\Device;
@@ -9,6 +10,7 @@ use App\Models\User;
 use App\Repositories\Interfaces\DeviceRepositoryInterface;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -17,9 +19,38 @@ class DeviceService
 {
     public const TOUCH_DEBOUNCE_MINUTES = 5;
 
+    public const TWO_FACTOR_CHALLENGE_TTL_MINUTES = 5;
+
     public function __construct(
         private readonly DeviceRepositoryInterface $deviceRepository,
+        private readonly TokenService $tokenService,
     ) {}
+
+    public function issueOrChallenge(User $user, string $deviceName, Request $request): array
+    {
+        if ($user->hasTwoFactorEnabled()) {
+            $challenge = $this->tokenService->issueToken(
+                $user,
+                '2fa-challenge',
+                [TokenAbility::TwoFactorPending->value],
+                Carbon::now()->addMinutes(self::TWO_FACTOR_CHALLENGE_TTL_MINUTES),
+            );
+
+            return [
+                'kind' => '2fa_required',
+                'challenge_token' => $challenge,
+                'expires_in' => self::TWO_FACTOR_CHALLENGE_TTL_MINUTES * 60,
+            ];
+        }
+
+        $issued = $this->issueForUser($user, $deviceName, $request);
+
+        return [
+            'kind' => 'logged_in',
+            'token' => $issued['token'],
+            'device' => $issued['device'],
+        ];
+    }
 
     public function issueForUser(User $user, string $deviceName, Request $request): array
     {
