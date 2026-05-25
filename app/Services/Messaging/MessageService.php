@@ -25,7 +25,8 @@ class MessageService
         private readonly ConversationReadRepositoryInterface $readRepository,
         private readonly AttachmentsService $attachmentsService,
         private readonly ConversationService $conversationService,
-    ) {}
+    ) {
+    }
 
     public function getMessagesForConversation(Conversation $conversation, int $perPage = 30)
     {
@@ -42,6 +43,7 @@ class MessageService
             }
 
             $this->conversationRepository->updateLastMessage($conversation, $message->id);
+            $conversation->setRelation('lastMessage', $message);
 
             $conversation->loadMissing('participants.user');
             $participants = $conversation->participants;
