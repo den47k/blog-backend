@@ -36,6 +36,8 @@ class MessageService
     public function storeMessage(Conversation $conversation, User $user, array $data): Message
     {
         return DB::transaction(function () use ($conversation, $user, $data) {
+            Conversation::whereKey($conversation->id)->lockForUpdate()->first();
+
             $message = $this->messageRepository->create($conversation, $user->id, $data['content'] ?? null);
 
             if (isset($data['attachment'])) {
@@ -90,6 +92,9 @@ class MessageService
     public function deleteMessage(Conversation $conversation, Message $message)
     {
         return DB::transaction(function () use ($conversation, $message) {
+            Conversation::whereKey($conversation->id)->lockForUpdate()->first();
+            $conversation->refresh();
+
             $wasLastMessage = $conversation->last_message_id === $message->id;
             $messageId = $message->id;
             $newLastMessage = null;
