@@ -14,7 +14,7 @@ class ConversationRepository implements ConversationRepositoryInterface
         return $user->activeConversations()
             ->with([
                 'participants.user:id,name,tag,avatar',
-                'lastMessage:id,content,created_at',
+                'lastMessage:id,content,created_at,updated_at',
             ])
             ->orderByDesc('updated_at')
             ->orderByDesc('id')
@@ -27,7 +27,7 @@ class ConversationRepository implements ConversationRepositoryInterface
             ->whereHas('participants', fn ($q) => $q->where('user_id', $initiator->id))
             ->whereHas('participants', fn ($q) => $q->where('user_id', $other->id))
             ->has('participants', '=', 2)
-            ->with('lastMessage:id,content,created_at')
+            ->with('lastMessage:id,content,created_at,updated_at')
             ->first();
     }
 

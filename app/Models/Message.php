@@ -16,11 +16,9 @@ class Message extends Model
         'user_id',
         'parent_id',
         'is_pinned',
-        'edited_at',
     ];
 
     protected $casts = [
-        'edited_at' => 'datetime',
         'is_pinned' => 'boolean',
     ];
 

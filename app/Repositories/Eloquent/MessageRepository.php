@@ -43,6 +43,7 @@ class MessageRepository implements MessageRepositoryInterface
         return $conversation->messages()
             ->where('id', '!=', $excludeMessageId)
             ->latest()
+            ->orderByDesc('id')
             ->first();
     }
 }

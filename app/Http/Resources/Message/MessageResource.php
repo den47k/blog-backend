@@ -14,8 +14,8 @@ class MessageResource extends JsonResource
             'id' => $this->id,
             'content' => $this->content,
             'conversationId' => $this->conversation_id,
-            'editedAt' => $this->edited_at,
             'createdAt' => $this->created_at->toISOString(),
+            'updatedAt' => $this->updated_at->toISOString(),
             'sender' => new UserResource($this->whenLoaded('user')),
             'attachment' => new MessageAttachmentResource(
                 $this->whenLoaded('attachment'),

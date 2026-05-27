@@ -77,7 +77,6 @@ class MessageService
         return DB::transaction(function () use ($message, $data) {
             $this->messageRepository->update($message, [
                 'content' => $data['content'],
-                'edited_at' => now(),
             ]);
 
             $conversation = $message->conversation;
