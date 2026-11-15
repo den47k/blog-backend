@@ -18,15 +18,21 @@
         </include>
     </source>
     <php>
-        <env name="APP_ENV" value="testing"/>
+        <env name="APP_ENV" value="testing" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
-        <env name="CACHE_STORE" value="array"/>
-        <env name="DB_DATABASE" value="testing"/>
-        <env name="MAIL_MAILER" value="array"/>
+        <env name="CACHE_STORE" value="array" force="true"/>
+        <env name="DB_DATABASE" value="testing" force="true"/>
+        <env name="REDIS_DB" value="15" force="true"/>
+        <env name="MAIL_MAILER" value="array" force="true"/>
         <env name="PULSE_ENABLED" value="false"/>
-        <env name="QUEUE_CONNECTION" value="sync"/>
-        <env name="SESSION_DRIVER" value="array"/>
-        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="QUEUE_CONNECTION" value="sync" force="true"/>
+        <env name="SESSION_DRIVER" value="array" force="true"/>
+        <env name="TELESCOPE_ENABLED" value="false" force="true"/>
+        <env name="BROADCAST_CONNECTION" value="centrifugo" force="true"/>
+        <env name="CENTRIFUGO_URL" value="http://centrifugo.test" force="true"/>
+        <env name="CENTRIFUGO_PUBLIC_URL" value="ws://centrifugo.test/connection/websocket" force="true"/>
+        <env name="CENTRIFUGO_API_KEY" value="test-api-key" force="true"/>
+        <env name="CENTRIFUGO_TOKEN_HMAC_SECRET" value="test-hmac-secret-test-hmac-secret-0123456789" force="true"/>
     </php>
 </phpunit>
