@@ -3,6 +3,7 @@
 namespace Tests;
 
 use App\Models\Conversation;
+use App\Models\Message;
 use App\Models\Participant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -78,6 +79,22 @@ abstract class TestCase extends BaseTestCase
         }
 
         return $conversation;
+    }
+
+    /**
+     * Stores a message directly (no HTTP, no broadcast) and makes it the
+     * conversation's last message. Create messages in chronological order.
+     */
+    protected function message(Conversation $conversation, User $author, array $attributes = []): Message
+    {
+        $message = Message::factory()
+            ->for($conversation)
+            ->for($author)
+            ->create($attributes);
+
+        $conversation->update(['last_message_id' => $message->id]);
+
+        return $message;
     }
 
     /**
