@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Models\EmailOtp;
+use App\Repositories\EmailOtpRepository;
 use Illuminate\Console\Command;
 
 class PruneExpiredEmailOtps extends Command
@@ -11,17 +11,14 @@ class PruneExpiredEmailOtps extends Command
 
     protected $description = 'Delete expired or consumed email otps past the retention window.';
 
-    public function handle(): int
+    public function handle(EmailOtpRepository $otpRepository): int
     {
         $hours = max(1, (int) $this->option('hours'));
-        $cutoff = now()->subHours($hours);
 
-        $count = EmailOtp::where(function ($q) use ($cutoff) {
-            $q->where('expires_at', '<', $cutoff)
-                ->orWhere('consumed_at', '<', $cutoff);
-        })->delete();
+        $count = $otpRepository->pruneOlderThan(now()->subHours($hours));
 
         $this->info($count === 0 ? 'No expired otps.' : "Pruned {$count} expired email otps.");
+
         return self::SUCCESS;
     }
 }

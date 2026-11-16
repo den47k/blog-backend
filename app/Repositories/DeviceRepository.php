@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\Device;
 use App\Models\User;
+use DateTimeInterface;
 use Illuminate\Support\Collection;
 
 class DeviceRepository
@@ -23,6 +24,17 @@ class DeviceRepository
         return Device::where('user_id', $user->id)
             ->orderByDesc('last_seen_at')
             ->get();
+    }
+
+    /** Token ids of devices created before the cutoff and not seen since. */
+    public function staleTokenIds(DateTimeInterface $cutoff): Collection
+    {
+        return Device::where('created_at', '<', $cutoff)
+            ->where(function ($q) use ($cutoff) {
+                $q->where('last_seen_at', '<', $cutoff)
+                    ->orWhereNull('last_seen_at');
+            })
+            ->pluck('personal_access_token_id');
     }
 
     public function create(array $data): Device

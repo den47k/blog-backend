@@ -3,7 +3,7 @@
 namespace App\Services\Auth;
 
 use App\Enums\OtpPurpose;
-use App\Models\EmailOtp;
+use App\Repositories\EmailOtpRepository;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -14,13 +14,17 @@ class OtpService
 
     public const TTL_MINUTES = 10;
 
+    public function __construct(
+        private readonly EmailOtpRepository $otpRepository,
+    ) {}
+
     public function issue(string $email, OtpPurpose $purpose, ?string $ip = null): string
     {
         $this->invalidatePending($email, $purpose);
 
         $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        EmailOtp::create([
+        $this->otpRepository->create([
             'email' => $email,
             'purpose' => $purpose->value,
             'code_hash' => Hash::make($otp),
@@ -33,12 +37,7 @@ class OtpService
 
     public function verify(string $email, OtpPurpose $purpose, string $otp): void
     {
-        $row = EmailOtp::where('email', $email)
-            ->where('purpose', $purpose->value)
-            ->whereNull('consumed_at')
-            ->where('expires_at', '>', now())
-            ->orderByDesc('created_at')
-            ->first();
+        $row = $this->otpRepository->latestPending($email, $purpose);
 
         if (! $row) {
             throw ValidationException::withMessages([
@@ -47,27 +46,26 @@ class OtpService
         }
 
         if ($row->attempts >= self::MAX_ATTEMPTS) {
-            $row->forceFill(['consumed_at' => now()])->save();
+            $this->otpRepository->consume($row);
+
             throw ValidationException::withMessages([
                 'otp' => ['Too many failed attempts. Request a new code.'],
             ]);
         }
 
         if (! Hash::check($otp, $row->code_hash)) {
-            $row->increment('attempts');
+            $this->otpRepository->incrementAttempts($row);
+
             throw ValidationException::withMessages([
                 'otp' => ['The verification code is invalid.'],
             ]);
         }
 
-        $row->forceFill(['consumed_at' => now()])->save();
+        $this->otpRepository->consume($row);
     }
 
     public function invalidatePending(string $email, OtpPurpose $purpose): void
     {
-        EmailOtp::where('email', $email)
-            ->where('purpose', $purpose->value)
-            ->whereNull('consumed_at')
-            ->update(['consumed_at' => now()]);
+        $this->otpRepository->invalidatePending($email, $purpose);
     }
 }

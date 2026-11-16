@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Device;
+use App\Repositories\DeviceRepository;
+use App\Services\Auth\TokenService;
 use Illuminate\Console\Command;
-use Laravel\Sanctum\PersonalAccessToken;
 
 class PruneStaleDevices extends Command
 {
@@ -12,17 +12,10 @@ class PruneStaleDevices extends Command
 
     protected $description = 'Delete devices (and their Sanctum tokens) inactive beyond the given window.';
 
-    public function handle(): int
+    public function handle(DeviceRepository $deviceRepository, TokenService $tokenService): int
     {
         $days = max(1, (int) $this->option('days'));
-        $cutoff = now()->subDays($days);
-
-        $tokenIds = Device::where('created_at', '<', $cutoff)
-            ->where(function ($q) use ($cutoff) {
-                $q->where('last_seen_at', '<', $cutoff)
-                    ->orWhereNull('last_seen_at');
-            })
-            ->pluck('personal_access_token_id');
+        $tokenIds = $deviceRepository->staleTokenIds(now()->subDays($days));
 
         if ($tokenIds->isEmpty()) {
             $this->info('No stale devices.');
@@ -30,7 +23,7 @@ class PruneStaleDevices extends Command
             return self::SUCCESS;
         }
 
-        $count = PersonalAccessToken::whereIn('id', $tokenIds)->delete();
+        $count = $tokenService->revokeMany($tokenIds);
 
         $this->info("Pruned {$count} stale tokens (devices cascade-deleted).");
 

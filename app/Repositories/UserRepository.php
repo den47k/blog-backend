@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Enums\UserStatus;
 use App\Models\User;
+use DateTimeInterface;
 use Illuminate\Support\Collection;
 
 class UserRepository
@@ -60,6 +61,22 @@ class UserRepository
     public function tagExists(string $tag): bool
     {
         return User::where('tag', $tag)->exists();
+    }
+
+    /** Ids of users still in the given registration status since before the cutoff. */
+    public function pendingOlderThan(UserStatus $status, DateTimeInterface $cutoff): Collection
+    {
+        return User::where('status', $status)
+            ->where('created_at', '<', $cutoff)
+            ->pluck('id');
+    }
+
+    /**
+     * @param  iterable<string>  $ids
+     */
+    public function deleteMany(iterable $ids): int
+    {
+        return User::whereIn('id', $ids)->delete();
     }
 
     public function search(string $query, string $excludeUserId, int $limit = 10): Collection

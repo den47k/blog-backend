@@ -3,12 +3,17 @@
 namespace App\Services\Auth;
 
 use App\Models\User;
+use App\Repositories\TokenRepository;
 use Illuminate\Support\Carbon;
 use Laravel\Sanctum\NewAccessToken;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class TokenService
 {
+    public function __construct(
+        private readonly TokenRepository $tokenRepository,
+    ) {}
+
     public function createToken(User $user, string $name, array $abilities = ['*'], ?Carbon $expiresAt = null): NewAccessToken
     {
         return $user->createToken($name, $abilities, $expiresAt);
@@ -19,29 +24,43 @@ class TokenService
         return $this->createToken($user, $deviceName, $abilities, $expiresAt)->plainTextToken;
     }
 
-    public function revokeById(int $tokenId): void
-    {
-        PersonalAccessToken::whereKey($tokenId)->delete();
-    }
-
     public function revokeCurrent(User $user): void
     {
-        $user->currentAccessToken()?->delete();
+        $token = $user->currentAccessToken();
+
+        if ($token instanceof PersonalAccessToken) {
+            $this->tokenRepository->delete($token);
+        }
+    }
+
+    public function revokeById(int $tokenId): void
+    {
+        $this->tokenRepository->deleteById($tokenId);
+    }
+
+    /**
+     * @param  iterable<int>  $tokenIds
+     */
+    public function revokeMany(iterable $tokenIds): int
+    {
+        return $this->tokenRepository->deleteMany($tokenIds);
     }
 
     public function revokeAll(User $user): void
     {
-        $user->tokens()->delete();
+        $this->tokenRepository->deleteForUser($user);
     }
 
     public function revokeAllExcept(User $user, ?int $keepTokenId): void
     {
-        $query = $user->tokens();
+        $this->tokenRepository->deleteForUser($user, $keepTokenId);
+    }
 
-        if ($keepTokenId !== null) {
-            $query->where('id', '!=', $keepTokenId);
-        }
-
-        $query->delete();
+    /**
+     * @param  iterable<string>  $userIds
+     */
+    public function revokeAllForUsers(iterable $userIds): void
+    {
+        $this->tokenRepository->deleteForUsers($userIds);
     }
 }
