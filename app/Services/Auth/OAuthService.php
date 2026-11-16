@@ -2,6 +2,7 @@
 
 namespace App\Services\Auth;
 
+use App\Enums\AuthStatus;
 use App\Enums\OtpPurpose;
 use App\Enums\TokenAbility;
 use App\Enums\UserStatus;
@@ -39,6 +40,7 @@ class OAuthService
         private readonly UserRepository $userRepository,
         private readonly OtpService $otpService,
         private readonly TokenService $tokenService,
+        private readonly DeviceService $deviceService,
     ) {}
 
     public function redirectUrl(string $provider): array
@@ -61,7 +63,7 @@ class OAuthService
         return ['url' => $url];
     }
 
-    public function handleCallback(string $provider, Request $request): array
+    public function handleCallback(string $provider, string $deviceName, Request $request): AuthResult
     {
         $this->assertProvider($provider);
 
@@ -86,7 +88,7 @@ class OAuthService
 
         $identity = $this->identityRepository->findByProviderUid($provider, $providerUid);
         if ($identity) {
-            return $this->outcomeFor($identity->user, $request);
+            return $this->outcomeFor($identity->user, $deviceName, $request);
         }
 
         $localUser = $providerEmail
@@ -97,7 +99,7 @@ class OAuthService
             if ($localUser->email_verified_at && $pVerified) {
                 $this->createIdentity($localUser, $provider, $providerUid, $providerEmail, $pVerified, $socialUser);
 
-                return $this->outcomeFor($localUser, $request);
+                return $this->outcomeFor($localUser, $deviceName, $request);
             }
 
             Cache::put(
@@ -119,49 +121,25 @@ class OAuthService
                 Carbon::now()->addMinutes(self::LINK_TTL_MINUTES),
             );
 
-            return [
-                'kind' => 'link_required',
-                'link_token' => $linkToken,
-                'expires_in' => self::LINK_TTL_MINUTES * 60,
-            ];
+            return new AuthResult(
+                AuthStatus::LinkRequired,
+                $linkToken,
+                expiresIn: self::LINK_TTL_MINUTES * 60,
+            );
         }
 
-        if ($pVerified) {
-            $newUser = DB::transaction(function () use ($providerEmail, $socialUser, $provider, $providerUid, $pVerified) {
-                $user = $this->userRepository->create([
-                    'email' => $providerEmail,
-                    'email_verified_at' => now(),
-                    'name' => $socialUser->getName() ?: null,
-                    'tag' => null,
-                    'password' => Hash::make(Str::random(64)),
-                    'status' => UserStatus::PendingProfile,
-                ]);
-                $this->createIdentity($user, $provider, $providerUid, $providerEmail, $pVerified, $socialUser);
+        $newUser = $this->createPendingUser(
+            $pVerified ? UserStatus::PendingProfile : UserStatus::PendingEmail,
+            $provider,
+            $providerUid,
+            $providerEmail,
+            $socialUser,
+        );
 
-                return $user;
-            });
-
-            return $this->outcomeFor($newUser, $request);
-        }
-
-        $newUser = DB::transaction(function () use ($providerEmail, $socialUser, $provider, $providerUid, $pVerified) {
-            $user = $this->userRepository->create([
-                'email' => $providerEmail,
-                'email_verified_at' => null,
-                'name' => $socialUser->getName() ?: null,
-                'tag' => null,
-                'password' => Hash::make(Str::random(64)),
-                'status' => UserStatus::PendingEmail,
-            ]);
-            $this->createIdentity($user, $provider, $providerUid, $providerEmail, $pVerified, $socialUser);
-
-            return $user;
-        });
-
-        return $this->outcomeFor($newUser, $request);
+        return $this->outcomeFor($newUser, $deviceName, $request);
     }
 
-    public function confirmLink(User $user, string $provider, string $password, Request $request): array
+    public function confirmLink(User $user, string $provider, string $password, string $deviceName, Request $request): AuthResult
     {
         $this->assertProvider($provider);
 
@@ -208,7 +186,7 @@ class OAuthService
             'provider_email' => $cached['provider_email'],
         ]));
 
-        return $this->outcomeFor($user, $request);
+        return $this->outcomeFor($user, $deviceName, $request);
     }
 
     public function unlink(User $user, string $identityId): void
@@ -241,13 +219,13 @@ class OAuthService
     }
 
     /**
-     * A full login only for active users; anyone still in registration
-     * gets a registration token for the step they stopped at.
+     * A full login (or 2FA challenge) only for active users; anyone still in
+     * registration gets a registration token for the step they stopped at.
      */
-    private function outcomeFor(User $user, Request $request): array
+    private function outcomeFor(User $user, string $deviceName, Request $request): AuthResult
     {
         if ($user->status === UserStatus::Active) {
-            return ['kind' => 'logged_in', 'user' => $user];
+            return $this->deviceService->issueOrChallenge($user, $deviceName, $request);
         }
 
         if ($user->status === UserStatus::PendingEmail) {
@@ -255,16 +233,42 @@ class OAuthService
             $user->notify(new EmailOtpNotification($code, OtpPurpose::Register->value));
         }
 
-        return [
-            'kind' => $user->status->value,
-            'token' => $this->tokenService->issueToken(
+        return new AuthResult(
+            AuthStatus::from($user->status->value),
+            $this->tokenService->issueToken(
                 $user,
                 'registration',
                 [TokenAbility::RegisterPending->value],
                 Carbon::now()->addMinutes(self::REGISTER_TTL_MINUTES),
             ),
-            'expires_in' => self::REGISTER_TTL_MINUTES * 60,
-        ];
+            $user,
+            expiresIn: self::REGISTER_TTL_MINUTES * 60,
+        );
+    }
+
+    private function createPendingUser(
+        UserStatus $status,
+        string $provider,
+        string $providerUid,
+        ?string $providerEmail,
+        SocialiteUser $socialUser,
+    ): User {
+        $verified = $status === UserStatus::PendingProfile;
+
+        return DB::transaction(function () use ($status, $verified, $provider, $providerUid, $providerEmail, $socialUser) {
+            $user = $this->userRepository->create([
+                'email' => $providerEmail,
+                'email_verified_at' => $verified ? now() : null,
+                'name' => $socialUser->getName() ?: null,
+                'tag' => null,
+                // Random and unknown to anyone: the account signs in through the provider.
+                'password' => Hash::make(Str::random(64)),
+                'status' => $status,
+            ]);
+            $this->createIdentity($user, $provider, $providerUid, $providerEmail, $verified, $socialUser);
+
+            return $user;
+        });
     }
 
     private function createIdentity(

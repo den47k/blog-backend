@@ -2,6 +2,7 @@
 
 namespace App\Services\Auth;
 
+use App\Enums\AuthStatus;
 use App\Enums\TokenAbility;
 use App\Events\Auth\DeviceRegistered;
 use App\Events\Auth\DeviceRevoked;
@@ -25,7 +26,7 @@ class DeviceService
         private readonly TokenService $tokenService,
     ) {}
 
-    public function issueOrChallenge(User $user, string $deviceName, Request $request): array
+    public function issueOrChallenge(User $user, string $deviceName, Request $request): AuthResult
     {
         if ($user->hasTwoFactorEnabled()) {
             $challenge = $this->tokenService->issueToken(
@@ -35,23 +36,17 @@ class DeviceService
                 Carbon::now()->addMinutes(self::TWO_FACTOR_CHALLENGE_TTL_MINUTES),
             );
 
-            return [
-                'kind' => '2fa_required',
-                'challenge_token' => $challenge,
-                'expires_in' => self::TWO_FACTOR_CHALLENGE_TTL_MINUTES * 60,
-            ];
+            return new AuthResult(
+                AuthStatus::TwoFactorRequired,
+                $challenge,
+                expiresIn: self::TWO_FACTOR_CHALLENGE_TTL_MINUTES * 60,
+            );
         }
 
-        $issued = $this->issueForUser($user, $deviceName, $request);
-
-        return [
-            'kind' => 'logged_in',
-            'token' => $issued['token'],
-            'device' => $issued['device'],
-        ];
+        return $this->issueForUser($user, $deviceName, $request);
     }
 
-    public function issueForUser(User $user, string $deviceName, Request $request): array
+    public function issueForUser(User $user, string $deviceName, Request $request): AuthResult
     {
         $result = DB::transaction(function () use ($user, $deviceName, $request) {
             $newToken = $this->tokenService->createToken($user, $deviceName);
@@ -71,18 +66,15 @@ class DeviceService
                 'last_seen_ip' => $request->ip(),
             ]);
 
-            return [
-                'token' => $newToken->plainTextToken,
-                'device' => $device,
-            ];
+            return new AuthResult(AuthStatus::LoggedIn, $newToken->plainTextToken, $user, $device);
         });
 
         event(new DeviceRegistered($user, [
-            'device_id' => $result['device']->id,
-            'device_name' => $result['device']->device_name,
-            'client_type' => $result['device']->client_type,
-            'platform' => $result['device']->platform,
-            'browser' => $result['device']->browser,
+            'device_id' => $result->device->id,
+            'device_name' => $result->device->device_name,
+            'client_type' => $result->device->client_type,
+            'platform' => $result->device->platform,
+            'browser' => $result->device->browser,
             'ip' => $request->ip(),
         ]));
 

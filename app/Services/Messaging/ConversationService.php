@@ -9,6 +9,7 @@ use App\Repositories\ConversationReadRepository;
 use App\Repositories\ConversationRepository;
 use App\Repositories\ParticipantRepository;
 use App\Repositories\UserRepository;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 
@@ -19,10 +20,10 @@ class ConversationService
         private readonly UserRepository $userRepository,
         private readonly ParticipantRepository $participantRepository,
         private readonly ConversationReadRepository $readRepository,
-        private readonly AttachmentsService $attachmentsService,
+        private readonly AttachmentService $attachmentService,
     ) {}
 
-    public function getConversationsForUser(User $user, int $perPage = 20)
+    public function getConversationsForUser(User $user, int $perPage = 20): CursorPaginator
     {
         return $this->conversationRepository->getForUser($user, $perPage);
     }
@@ -85,7 +86,7 @@ class ConversationService
             broadcast(new ConversationDeletedEvent($conversationId, $recipients->all()));
         });
 
-        $this->attachmentsService->deleteForConversation($conversation->id);
+        $this->attachmentService->deleteForConversation($conversation->id);
     }
 
     public function markConversationAsRead(Conversation $conversation, User $user): void

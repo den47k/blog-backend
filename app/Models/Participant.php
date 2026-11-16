@@ -5,12 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Participant extends Model
 {
     use HasFactory, HasUuids;
 
-    // Model attribute configuration
     protected $fillable = [
         'conversation_id',
         'user_id',
@@ -22,13 +22,12 @@ class Participant extends Model
         'joined_at' => 'datetime',
     ];
 
-    // Relationships
-    public function conversation()
+    public function conversation(): BelongsTo
     {
         return $this->belongsTo(Conversation::class);
     }
 
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }

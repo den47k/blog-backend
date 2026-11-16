@@ -6,7 +6,6 @@ use App\Events\Conversation\ConversationCreatedEvent;
 use App\Events\Message\MessageCreatedEvent;
 use App\Events\Message\MessageDeletedEvent;
 use App\Events\Message\MessageUpdatedEvent;
-use App\Http\Resources\Message\MessageResource;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
@@ -14,6 +13,7 @@ use App\Repositories\ConversationReadRepository;
 use App\Repositories\ConversationRepository;
 use App\Repositories\MessageRepository;
 use App\Repositories\ParticipantRepository;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -24,12 +24,11 @@ class MessageService
         private readonly ConversationRepository $conversationRepository,
         private readonly ParticipantRepository $participantRepository,
         private readonly ConversationReadRepository $readRepository,
-        private readonly AttachmentsService $attachmentsService,
+        private readonly AttachmentService $attachmentService,
         private readonly ConversationService $conversationService,
-    ) {
-    }
+    ) {}
 
-    public function getMessagesForConversation(Conversation $conversation, int $perPage = 30)
+    public function getMessagesForConversation(Conversation $conversation, int $perPage = 30): CursorPaginator
     {
         return $this->messageRepository->getPaginated($conversation, $perPage);
     }
@@ -40,7 +39,7 @@ class MessageService
         // path before the transaction: the upload must not run under the row lock.
         $messageId = (new Message)->newUniqueId();
         $fileData = isset($data['attachment'])
-            ? $this->attachmentsService->upload($conversation->id, $messageId, $data['attachment'])
+            ? $this->attachmentService->upload($conversation->id, $messageId, $data['attachment'])
             : null;
 
         try {
@@ -79,7 +78,7 @@ class MessageService
             });
         } catch (Throwable $e) {
             if ($fileData !== null) {
-                $this->attachmentsService->deletePaths($fileData);
+                $this->attachmentService->deletePaths($fileData);
             }
 
             throw $e;
@@ -90,7 +89,7 @@ class MessageService
         return $message;
     }
 
-    public function updateMessage(Message $message, array $data)
+    public function updateMessage(Message $message, array $data): Message
     {
         return DB::transaction(function () use ($message, $data) {
             $this->messageRepository->update($message, [
@@ -106,7 +105,7 @@ class MessageService
         });
     }
 
-    public function deleteMessage(Conversation $conversation, Message $message)
+    public function deleteMessage(Conversation $conversation, Message $message): DeletedMessage
     {
         $attachment = $message->attachment;
 
@@ -144,17 +143,11 @@ class MessageService
                 ))->toOthers();
             }
 
-            return [
-                'deletedId' => $messageId,
-                'wasLastMessage' => $wasLastMessage,
-                'newLastMessage' => $newLastMessage
-                    ? new MessageResource($newLastMessage)
-                    : null,
-            ];
+            return new DeletedMessage($messageId, $wasLastMessage, $newLastMessage);
         });
 
         if ($attachment) {
-            $this->attachmentsService->deleteFile($attachment);
+            $this->attachmentService->deleteFile($attachment);
         }
 
         return $result;

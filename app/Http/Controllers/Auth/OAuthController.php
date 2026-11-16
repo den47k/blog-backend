@@ -3,112 +3,49 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\User\AuthenticatedUserResource;
-use App\Services\Auth\DeviceService;
+use App\Http\Responses\AuthResponse;
 use App\Services\Auth\OAuthService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class OAuthController extends Controller
 {
     public function __construct(
         private readonly OAuthService $oauthService,
-        private readonly DeviceService $deviceService,
     ) {}
 
-    public function redirect(Request $request, string $provider)
+    public function redirect(Request $request, string $provider): JsonResponse
     {
         return response()->json($this->oauthService->redirectUrl($provider));
     }
 
-    public function callback(Request $request, string $provider)
+    public function callback(Request $request, string $provider): JsonResponse
     {
-        $result = $this->oauthService->handleCallback($provider, $request);
-        $deviceName = $request->query('device_name', $provider);
-
-        if ($result['kind'] === 'logged_in') {
-            $issued = $this->deviceService->issueOrChallenge($result['user'], $deviceName, $request);
-
-            if ($issued['kind'] === '2fa_required') {
-                return response()->json([
-                    'requires_2fa' => true,
-                    'challenge_token' => $issued['challenge_token'],
-                    'token_type' => 'Bearer',
-                    'expires_in' => $issued['expires_in'],
-                ]);
-            }
-
-            return response()->json([
-                'user' => new AuthenticatedUserResource($result['user']),
-                'token' => $issued['token'],
-                'token_type' => 'Bearer',
-                'device_id' => $issued['device']->id,
-            ]);
-        }
-
-        if ($result['kind'] === 'link_required') {
-            return response()->json([
-                'status' => 'link_required',
-                'link_token' => $result['link_token'],
-                'token_type' => 'Bearer',
-                'expires_in' => $result['expires_in'],
-            ], 409);
-        }
-
-        return response()->json([
-            'status' => $result['kind'],
-            'registration_token' => $result['token'],
-            'token_type' => 'Bearer',
-            'expires_in' => $result['expires_in'],
-        ]);
+        return AuthResponse::from($this->oauthService->handleCallback(
+            $provider,
+            $request->query('device_name', $provider),
+            $request,
+        ));
     }
 
-    public function confirmLink(Request $request, string $provider)
+    public function confirmLink(Request $request, string $provider): JsonResponse
     {
         $request->validate([
             'password' => ['required', 'string'],
             'device_name' => ['required', 'string', 'max:128'],
         ]);
 
-        $result = $this->oauthService->confirmLink(
+        return AuthResponse::from($this->oauthService->confirmLink(
             $request->user(),
             $provider,
             $request->input('password'),
+            $request->input('device_name'),
             $request,
-        );
-
-        if ($result['kind'] === 'logged_in') {
-            $issued = $this->deviceService->issueOrChallenge(
-                $result['user'],
-                $request->input('device_name'),
-                $request,
-            );
-
-            if ($issued['kind'] === '2fa_required') {
-                return response()->json([
-                    'requires_2fa' => true,
-                    'challenge_token' => $issued['challenge_token'],
-                    'token_type' => 'Bearer',
-                    'expires_in' => $issued['expires_in'],
-                ]);
-            }
-
-            return response()->json([
-                'user' => new AuthenticatedUserResource($result['user']),
-                'token' => $issued['token'],
-                'token_type' => 'Bearer',
-                'device_id' => $issued['device']->id,
-            ]);
-        }
-
-        return response()->json([
-            'status' => $result['kind'],
-            'registration_token' => $result['token'],
-            'token_type' => 'Bearer',
-            'expires_in' => $result['expires_in'],
-        ]);
+        ));
     }
 
-    public function unlink(Request $request, string $id)
+    public function unlink(Request $request, string $id): Response
     {
         $this->oauthService->unlink($request->user(), $id);
 

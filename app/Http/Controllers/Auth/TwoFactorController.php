@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\User\AuthenticatedUserResource;
+use App\Http\Responses\AuthResponse;
 use App\Services\Auth\DeviceService;
 use App\Services\Auth\TokenService;
 use App\Services\Auth\TwoFactorService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TwoFactorController extends Controller
@@ -17,14 +18,14 @@ class TwoFactorController extends Controller
         private readonly TokenService $tokenService,
     ) {}
 
-    public function enable(Request $request)
+    public function enable(Request $request): JsonResponse
     {
         return response()->json(
             $this->twoFactorService->startEnrollment($request->user())
         );
     }
 
-    public function confirm(Request $request)
+    public function confirm(Request $request): JsonResponse
     {
         $request->validate([
             'otp' => ['required', 'string', 'regex:/^\d{6}$/'],
@@ -35,7 +36,7 @@ class TwoFactorController extends Controller
         );
     }
 
-    public function verify(Request $request)
+    public function verify(Request $request): JsonResponse
     {
         $request->validate([
             'code' => ['nullable', 'required_without:recovery_code', 'string', 'regex:/^\d{6}$/'],
@@ -53,21 +54,14 @@ class TwoFactorController extends Controller
 
         $this->tokenService->revokeCurrent($user);
 
-        $issued = $this->deviceService->issueForUser(
+        return AuthResponse::from($this->deviceService->issueForUser(
             $user,
             $request->input('device_name'),
             $request,
-        );
-
-        return response()->json([
-            'user' => new AuthenticatedUserResource($user),
-            'token' => $issued['token'],
-            'token_type' => 'Bearer',
-            'device_id' => $issued['device']->id,
-        ]);
+        ));
     }
 
-    public function disable(Request $request)
+    public function disable(Request $request): JsonResponse
     {
         $request->validate(['password' => ['required', 'string']]);
 
@@ -76,7 +70,7 @@ class TwoFactorController extends Controller
         return response()->json(['message' => 'Two-factor authentication disabled.']);
     }
 
-    public function regenerateRecoveryCodes(Request $request)
+    public function regenerateRecoveryCodes(Request $request): JsonResponse
     {
         $request->validate(['password' => ['required', 'string']]);
 

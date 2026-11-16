@@ -2,6 +2,7 @@
 
 namespace App\Services\Auth;
 
+use App\Enums\AuthStatus;
 use App\Enums\OtpPurpose;
 use App\Enums\TokenAbility;
 use App\Enums\UserStatus;
@@ -25,7 +26,7 @@ class RegistrationService
         private readonly TokenService $tokenService,
     ) {}
 
-    public function start(string $email, string $password, ?string $ip = null): array
+    public function start(string $email, string $password, ?string $ip = null): AuthResult
     {
         $user = DB::transaction(function () use ($email, $password) {
             $existing = $this->userRepository->findByEmail($email);
@@ -65,11 +66,12 @@ class RegistrationService
             Carbon::now()->addMinutes(self::REGISTER_TOKEN_TTL_MINUTES),
         );
 
-        return [
-            'user' => $user,
-            'token' => $token,
-            'expires_in' => self::REGISTER_TOKEN_TTL_MINUTES * 60,
-        ];
+        return new AuthResult(
+            AuthStatus::PendingEmail,
+            $token,
+            $user,
+            expiresIn: self::REGISTER_TOKEN_TTL_MINUTES * 60,
+        );
     }
 
     public function verifyEmail(User $user, string $otp): void

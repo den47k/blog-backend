@@ -36,6 +36,11 @@ class UserService
         $this->removeAvatar($user);
     }
 
+    public function searchUsers(string $query, string $excludeUserId): Collection
+    {
+        return $this->userRepository->search($query, $excludeUserId);
+    }
+
     private function replaceAvatar(User $user, UploadedFile $file): void
     {
         // Old files go first: the resized variants reuse the same paths.
@@ -52,10 +57,5 @@ class UserService
 
         $this->avatarService->delete($user->avatar);
         $this->userRepository->setAvatar($user, null);
-    }
-
-    public function searchUsers(string $query, string $excludeUserId): Collection
-    {
-        return $this->userRepository->search($query, $excludeUserId);
     }
 }
