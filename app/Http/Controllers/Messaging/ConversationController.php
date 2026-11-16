@@ -23,10 +23,6 @@ class ConversationController extends Controller
         $user = $request->user();
         $conversations = $this->conversationService->getConversationsForUser($user);
 
-        ConversationResource::withUnreadMap(
-            $this->conversationService->getUnreadMap($user, $conversations)
-        );
-
         return ConversationResource::collection($conversations);
     }
 
@@ -35,10 +31,6 @@ class ConversationController extends Controller
         $user = $request->user();
         $conversation = $this->conversationService->getPrivateConversation($user, $tag);
         Gate::authorize('view', $conversation);
-
-        ConversationResource::withUnreadMap(
-            $this->conversationService->getUnreadMap($user, [$conversation])
-        );
 
         return new ConversationResource($conversation);
     }
@@ -49,10 +41,6 @@ class ConversationController extends Controller
             $request->user(),
             $request->validated('user_id'),
             $request->boolean('should_join_now'),
-        );
-
-        ConversationResource::withUnreadMap(
-            $this->conversationService->getUnreadMap($request->user(), [$conversation])
         );
 
         return response()->json([

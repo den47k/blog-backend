@@ -48,7 +48,7 @@ class ConversationResource extends JsonResource
             'lastMessage' => new MessageResource(
                 $this->whenLoaded('lastMessage'),
             ),
-            'hasUnread' => static::$unreadMap[$this->id] ?? false,
+            'hasUnread' => (bool) ($this->resource->getAttribute('has_unread') ?? false),
             'avatar' => $this->resolveAvatarUrls($otherUser?->avatar),
             'type' => $this->conversation_type,
             'participants' => UserResource::collection(

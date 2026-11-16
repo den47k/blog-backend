@@ -5,7 +5,6 @@ namespace App\Services\Messaging;
 use App\Events\Conversation\ConversationDeletedEvent;
 use App\Models\Conversation;
 use App\Models\User;
-use App\Repositories\Redis\ConversationReadRepository;
 use App\Repositories\Eloquent\ConversationRepository;
 use App\Repositories\Eloquent\ParticipantRepository;
 use App\Repositories\Eloquent\UserRepository;
@@ -19,7 +18,6 @@ class ConversationService
         private readonly ConversationRepository $conversationRepository,
         private readonly UserRepository $userRepository,
         private readonly ParticipantRepository $participantRepository,
-        private readonly ConversationReadRepository $readRepository,
         private readonly AttachmentService $attachmentService,
     ) {}
 
@@ -91,44 +89,6 @@ class ConversationService
 
     public function markConversationAsRead(Conversation $conversation, User $user): void
     {
-        $this->readRepository->markAsRead($conversation, $user);
-    }
-
-    public function getUnreadMap(User $user, iterable $conversations): array
-    {
-        $timestamps = $this->readRepository->getAllLastReadTimestamps($user);
-        $map = [];
-
-        foreach ($conversations as $conversation) {
-            $lastMessage = $conversation->lastMessage;
-
-            if (! $lastMessage) {
-                $map[$conversation->id] = false;
-
-                continue;
-            }
-
-            $lastReadAt = $timestamps[$conversation->id] ?? null;
-            $map[$conversation->id] = $lastReadAt
-                ? $lastMessage->created_at->gt($lastReadAt)
-                : true;
-        }
-
-        return $map;
-    }
-
-    public function hasUnreadMessages(Conversation $conversation, User $user): bool
-    {
-        $lastMessage = $conversation->lastMessage;
-
-        if (! $lastMessage) {
-            return false;
-        }
-
-        $lastReadAt = $this->readRepository->getLastReadAt($user, $conversation);
-
-        return $lastReadAt
-            ? $lastMessage->created_at->gt($lastReadAt)
-            : true;
+        $this->participantRepository->markRead($conversation, $user->id);
     }
 }

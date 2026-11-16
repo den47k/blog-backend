@@ -9,7 +9,6 @@ use App\Events\Message\MessageUpdatedEvent;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
-use App\Repositories\Redis\ConversationReadRepository;
 use App\Repositories\Eloquent\ConversationRepository;
 use App\Repositories\Eloquent\MessageRepository;
 use App\Repositories\Eloquent\ParticipantRepository;
@@ -23,9 +22,7 @@ class MessageService
         private readonly MessageRepository $messageRepository,
         private readonly ConversationRepository $conversationRepository,
         private readonly ParticipantRepository $participantRepository,
-        private readonly ConversationReadRepository $readRepository,
         private readonly AttachmentService $attachmentService,
-        private readonly ConversationService $conversationService,
     ) {}
 
     public function getMessagesForConversation(Conversation $conversation, int $perPage = 30): CursorPaginator
@@ -55,6 +52,10 @@ class MessageService
                 $this->conversationRepository->updateLastMessage($conversation, $message->id);
                 $conversation->setRelation('lastMessage', $message);
 
+                // The message's own timestamp, not now(): the sender's read mark
+                // must never fall behind the message it was written for.
+                $this->participantRepository->markRead($conversation, $user->id, $message->created_at);
+
                 $conversation->loadMissing('participants.user');
                 $participants = $conversation->participants;
                 $participant = $participants->firstWhere('user_id', $user->id);
@@ -83,8 +84,6 @@ class MessageService
 
             throw $e;
         }
-
-        $this->readRepository->markAsRead($conversation, $user);
 
         return $message;
     }
@@ -131,7 +130,7 @@ class MessageService
             $recipients = $this->participantRepository->getOtherParticipants($conversation, $message->user_id);
 
             foreach ($recipients as $recipient) {
-                $hasUnread = $this->conversationService->hasUnreadMessages($conversation, $recipient);
+                $hasUnread = $this->conversationRepository->hasUnread($conversation, $recipient->id);
 
                 broadcast(new MessageDeletedEvent(
                     $conversation,
