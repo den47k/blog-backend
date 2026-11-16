@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Repositories\DeviceRepository;
+use App\Repositories\Eloquent\DeviceRepository;
 use App\Services\Auth\TokenService;
 use Illuminate\Console\Command;
 

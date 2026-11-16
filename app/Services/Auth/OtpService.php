@@ -3,7 +3,7 @@
 namespace App\Services\Auth;
 
 use App\Enums\OtpPurpose;
-use App\Repositories\EmailOtpRepository;
+use App\Repositories\Eloquent\EmailOtpRepository;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;

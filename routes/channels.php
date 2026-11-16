@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\User;
-use App\Repositories\ConversationRepository;
+use App\Repositories\Eloquent\ConversationRepository;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Str;
 

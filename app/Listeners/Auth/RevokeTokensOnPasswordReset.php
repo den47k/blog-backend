@@ -2,7 +2,7 @@
 
 namespace App\Listeners\Auth;
 
-use App\Repositories\UserRepository;
+use App\Repositories\Eloquent\UserRepository;
 use App\Services\Auth\TokenService;
 use Illuminate\Auth\Events\PasswordReset;
 

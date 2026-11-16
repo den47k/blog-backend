@@ -4,7 +4,7 @@ namespace App\Services\Auth;
 
 use App\Events\Auth\AuthAudited;
 use App\Models\User;
-use App\Repositories\TwoFactorRepository;
+use App\Repositories\Eloquent\TwoFactorRepository;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;

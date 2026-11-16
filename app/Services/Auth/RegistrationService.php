@@ -8,7 +8,7 @@ use App\Enums\TokenAbility;
 use App\Enums\UserStatus;
 use App\Models\User;
 use App\Notifications\EmailOtpNotification;
-use App\Repositories\UserRepository;
+use App\Repositories\Eloquent\UserRepository;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;

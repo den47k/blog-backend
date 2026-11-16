@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Repositories\EmailOtpRepository;
+use App\Repositories\Eloquent\EmailOtpRepository;
 use Illuminate\Console\Command;
 
 class PruneExpiredEmailOtps extends Command

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories;
+namespace App\Repositories\Redis;
 
 use App\Models\Conversation;
 use App\Models\User;

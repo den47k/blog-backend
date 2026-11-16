@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Storage;
 
 use App\Http\Controllers\Controller;
-use App\Repositories\ConversationRepository;
+use App\Repositories\Eloquent\ConversationRepository;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;

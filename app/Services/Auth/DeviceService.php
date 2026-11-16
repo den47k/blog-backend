@@ -7,7 +7,7 @@ use App\Enums\TokenAbility;
 use App\Events\Auth\AuthAudited;
 use App\Models\Device;
 use App\Models\User;
-use App\Repositories\DeviceRepository;
+use App\Repositories\Eloquent\DeviceRepository;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;

@@ -91,7 +91,7 @@ Requests flow through four layers:
 
 - **Controllers** (`app/Http/Controllers`) validate input with FormRequests, call one service and shape the response. They never query the database.
 - **Services** (`app/Services`) hold the business logic: transactions, rules, events, file storage. They return models or small readonly result objects (`AuthResult`, `DeletedMessage`), never JSON resources.
-- **Repositories** (`app/Repositories`) are the only place that runs queries or persists models. One concrete class per aggregate, no interfaces.
+- **Repositories** (`app/Repositories`) are the only place that runs queries or persists models: `Eloquent/` for the database, `Redis/` for read state. One concrete class per aggregate, no interfaces.
 - **Models** (`app/Models`) declare attributes, casts and relations.
 
 The rule: services, policies, console commands, listeners and `routes/channels.php` do not call Eloquent query or persistence methods (`Model::where/create/find`, `save()`, `update()`, `delete()`, `DB::table`); they call a repository. Exceptions are route model binding, loading relations on an already fetched model, the framework's `Password::reset` callback and Sanctum's `createToken` (wrapped by `TokenService`).

@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Enums\UserStatus;
-use App\Repositories\UserRepository;
+use App\Repositories\Eloquent\UserRepository;
 use App\Services\Auth\TokenService;
 use Illuminate\Console\Command;
 

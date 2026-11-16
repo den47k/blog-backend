@@ -4,7 +4,7 @@ namespace App\Policies;
 
 use App\Models\Conversation;
 use App\Models\User;
-use App\Repositories\ParticipantRepository;
+use App\Repositories\Eloquent\ParticipantRepository;
 
 class ConversationPolicy
 {
