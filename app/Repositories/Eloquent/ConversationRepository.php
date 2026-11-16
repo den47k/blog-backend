@@ -4,10 +4,9 @@ namespace App\Repositories\Eloquent;
 
 use App\Models\Conversation;
 use App\Models\User;
-use App\Repositories\Interfaces\ConversationRepositoryInterface;
 use Illuminate\Contracts\Pagination\CursorPaginator;
 
-class ConversationRepository implements ConversationRepositoryInterface
+class ConversationRepository
 {
     public function getForUser(User $user, int $perPage = 20): CursorPaginator
     {
@@ -29,6 +28,29 @@ class ConversationRepository implements ConversationRepositoryInterface
             ->has('participants', '=', 2)
             ->with('lastMessage:id,content,created_at,updated_at')
             ->first();
+    }
+
+    public function find(string $id): ?Conversation
+    {
+        return Conversation::find($id);
+    }
+
+    public function findOrFail(string $id): Conversation
+    {
+        return Conversation::findOrFail($id);
+    }
+
+    /**
+     * Takes a row lock for the rest of the transaction and brings the
+     * given model up to date with the locked row.
+     */
+    public function lockForUpdate(Conversation $conversation): void
+    {
+        $locked = Conversation::whereKey($conversation->id)->lockForUpdate()->first();
+
+        if ($locked) {
+            $conversation->setRawAttributes($locked->getAttributes(), true);
+        }
     }
 
     public function create(array $data): Conversation

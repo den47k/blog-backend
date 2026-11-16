@@ -2,6 +2,7 @@
 
 namespace App\Services\User;
 
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -10,9 +11,9 @@ use Intervention\Image\ImageManager;
 
 class AvatarService
 {
-    protected $disk;
+    private Filesystem $disk;
 
-    protected $imageManager;
+    private ImageManager $imageManager;
 
     public function __construct()
     {

@@ -3,17 +3,19 @@
 namespace App\Models;
 
 use App\Enums\UserStatus;
-use App\Traits\HasProfilePhoto;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasApiTokens, HasFactory, HasProfilePhoto, HasUuids, Notifiable;
+    use HasApiTokens, HasFactory, HasUuids, Notifiable;
 
     protected $fillable = [
         'name',
@@ -41,39 +43,39 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
-    public function conversations()
+    public function conversations(): BelongsToMany
     {
         return $this->belongsToMany(Conversation::class, 'participants')->withTimestamps();
     }
 
-    public function activeConversations()
+    public function activeConversations(): BelongsToMany
     {
         return $this->belongsToMany(Conversation::class, 'participants')
             ->withPivot('joined_at', 'role')
             ->wherePivotNotNull('joined_at');
     }
 
-    public function messages()
+    public function messages(): HasMany
     {
         return $this->hasMany(Message::class);
     }
 
-    public function devices()
+    public function devices(): HasMany
     {
         return $this->hasMany(Device::class);
     }
 
-    public function oauthIdentities()
+    public function oauthIdentities(): HasMany
     {
         return $this->hasMany(OAuthIdentity::class);
     }
 
-    public function twoFactorSecret()
+    public function twoFactorSecret(): HasOne
     {
         return $this->hasOne(TwoFactorSecret::class);
     }
 
-    public function recoveryCodes()
+    public function recoveryCodes(): HasMany
     {
         return $this->hasMany(RecoveryCode::class);
     }

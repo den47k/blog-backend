@@ -4,11 +4,10 @@ namespace App\Repositories\Redis;
 
 use App\Models\Conversation;
 use App\Models\User;
-use App\Repositories\Interfaces\ConversationReadRepositoryInterface;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Redis;
 
-class ConversationReadRepository implements ConversationReadRepositoryInterface
+class ConversationReadRepository
 {
     private const REDIS_LAST_READ_PREFIX = 'user';
 

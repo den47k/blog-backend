@@ -5,10 +5,11 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
-use App\Http\Resources\User\AuthenticatedUserResource;
+use App\Http\Responses\AuthResponse;
 use App\Services\Auth\CredentialAuthenticator;
 use App\Services\Auth\DeviceService;
 use App\Services\Auth\TokenService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class SessionController extends Controller
@@ -19,7 +20,7 @@ class SessionController extends Controller
         private readonly DeviceService $deviceService,
     ) {}
 
-    public function login(LoginRequest $request)
+    public function login(LoginRequest $request): JsonResponse
     {
         $credentials = $request->credentials();
 
@@ -32,33 +33,19 @@ class SessionController extends Controller
             ], 403);
         }
 
-        $result = $this->deviceService->issueOrChallenge($user, $request->deviceName(), $request);
-
-        if ($result['kind'] === '2fa_required') {
-            return response()->json([
-                'requires_2fa' => true,
-                'challenge_token' => $result['challenge_token'],
-                'token_type' => 'Bearer',
-                'expires_in' => $result['expires_in'],
-            ]);
-        }
-
-        return response()->json([
-            'user' => new AuthenticatedUserResource($user),
-            'token' => $result['token'],
-            'token_type' => 'Bearer',
-            'device_id' => $result['device']->id,
-        ]);
+        return AuthResponse::from(
+            $this->deviceService->issueOrChallenge($user, $request->deviceName(), $request)
+        );
     }
 
-    public function logout(Request $request)
+    public function logout(Request $request): JsonResponse
     {
         $this->tokenService->revokeCurrent($request->user());
 
         return response()->json(['message' => 'Logged out']);
     }
 
-    public function logoutAll(Request $request)
+    public function logoutAll(Request $request): JsonResponse
     {
         $this->tokenService->revokeAll($request->user());
 

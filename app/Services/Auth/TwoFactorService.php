@@ -2,11 +2,9 @@
 
 namespace App\Services\Auth;
 
-use App\Events\Auth\TwoFactorDisabled;
-use App\Events\Auth\TwoFactorEnabled;
-use App\Models\RecoveryCode;
-use App\Models\TwoFactorSecret;
+use App\Events\Auth\AuthAudited;
 use App\Models\User;
+use App\Repositories\Eloquent\TwoFactorRepository;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -22,6 +20,7 @@ class TwoFactorService
 
     public function __construct(
         private readonly Google2FA $google2fa,
+        private readonly TwoFactorRepository $twoFactorRepository,
         private readonly TokenService $tokenService,
     ) {}
 
@@ -35,15 +34,7 @@ class TwoFactorService
 
         $secret = $this->google2fa->generateSecretKey();
 
-        TwoFactorSecret::updateOrCreate(
-            ['user_id' => $user->id],
-            [
-                'secret' => $secret,
-                'confirmed_at' => null,
-                'last_used_timestep' => null,
-                'last_used_at' => null,
-            ],
-        );
+        $this->twoFactorRepository->upsertSecret($user, $secret);
 
         return [
             'secret' => $secret,
@@ -53,7 +44,7 @@ class TwoFactorService
 
     public function confirmEnrollment(User $user, string $otp): array
     {
-        $row = TwoFactorSecret::where('user_id', $user->id)->whereNull('confirmed_at')->first();
+        $row = $this->twoFactorRepository->pendingSecret($user);
 
         if (! $row) {
             throw ValidationException::withMessages([
@@ -70,16 +61,12 @@ class TwoFactorService
         }
 
         $result = DB::transaction(function () use ($row, $matched, $user) {
-            $row->forceFill([
-                'confirmed_at' => now(),
-                'last_used_timestep' => is_int($matched) ? $matched : null,
-                'last_used_at' => now(),
-            ])->save();
+            $this->twoFactorRepository->confirmSecret($row, is_int($matched) ? $matched : null);
 
             return ['recovery_codes' => $this->generateRecoveryCodes($user)];
         });
 
-        event(new TwoFactorEnabled($user));
+        event(new AuthAudited('two_factor.enabled', $user));
 
         return $result;
     }
@@ -126,13 +113,13 @@ class TwoFactorService
         $currentTokenId = $user->currentAccessToken()?->id;
 
         DB::transaction(function () use ($user) {
-            TwoFactorSecret::where('user_id', $user->id)->delete();
-            RecoveryCode::where('user_id', $user->id)->delete();
+            $this->twoFactorRepository->deleteSecret($user);
+            $this->twoFactorRepository->deleteRecoveryCodes($user);
         });
 
         $this->tokenService->revokeAllExcept($user, $currentTokenId);
 
-        event(new TwoFactorDisabled($user));
+        event(new AuthAudited('two_factor.disabled', $user));
     }
 
     public function regenerateRecoveryCodes(User $user, string $password): array
@@ -169,21 +156,21 @@ class TwoFactorService
             ]);
         }
 
-        $row->forceFill([
-            'last_used_timestep' => is_int($matched) ? $matched : $row->last_used_timestep,
-            'last_used_at' => now(),
-        ])->save();
+        $this->twoFactorRepository->recordSecretUse(
+            $row,
+            is_int($matched) ? $matched : $row->last_used_timestep,
+        );
     }
 
     private function consumeRecoveryCode(User $user, string $recoveryCode): void
     {
         $candidate = $this->normalizeRecoveryCode($recoveryCode);
 
-        $codes = RecoveryCode::where('user_id', $user->id)->whereNull('used_at')->get();
+        $codes = $this->twoFactorRepository->unusedRecoveryCodes($user);
 
         foreach ($codes as $row) {
             if (Hash::check($candidate, $row->code_hash)) {
-                $row->forceFill(['used_at' => now()])->save();
+                $this->twoFactorRepository->markRecoveryCodeUsed($row);
 
                 return;
             }
@@ -196,19 +183,16 @@ class TwoFactorService
 
     private function generateRecoveryCodes(User $user): array
     {
-        RecoveryCode::where('user_id', $user->id)->delete();
-
         $plaintext = [];
 
         for ($i = 0; $i < self::RECOVERY_CODE_COUNT; $i++) {
-            $code = $this->randomRecoveryCode();
-            $plaintext[] = $code;
-
-            RecoveryCode::create([
-                'user_id' => $user->id,
-                'code_hash' => Hash::make($code),
-            ]);
+            $plaintext[] = $this->randomRecoveryCode();
         }
+
+        $this->twoFactorRepository->replaceRecoveryCodes(
+            $user,
+            array_map(fn (string $code) => Hash::make($code), $plaintext),
+        );
 
         return $plaintext;
     }

@@ -5,10 +5,9 @@ namespace App\Repositories\Eloquent;
 use App\Models\Conversation;
 use App\Models\Participant;
 use App\Models\User;
-use App\Repositories\Interfaces\ParticipantRepositoryInterface;
 use Illuminate\Support\Collection;
 
-class ParticipantRepository implements ParticipantRepositoryInterface
+class ParticipantRepository
 {
     public function add(Conversation $conversation, User $user, ?string $joinedAt = null, string $role = 'member'): Participant
     {
@@ -23,6 +22,18 @@ class ParticipantRepository implements ParticipantRepositoryInterface
         return $conversation->participants()
             ->where('user_id', $userId)
             ->first();
+    }
+
+    public function exists(Conversation $conversation, string $userId): bool
+    {
+        return $conversation->participants()
+            ->where('user_id', $userId)
+            ->exists();
+    }
+
+    public function markJoined(Participant $participant): void
+    {
+        $participant->update(['joined_at' => now()]);
     }
 
     public function getAll(Conversation $conversation): Collection

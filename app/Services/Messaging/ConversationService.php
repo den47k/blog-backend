@@ -5,26 +5,25 @@ namespace App\Services\Messaging;
 use App\Events\Conversation\ConversationDeletedEvent;
 use App\Models\Conversation;
 use App\Models\User;
-use App\Repositories\Interfaces\ConversationReadRepositoryInterface;
-use App\Repositories\Interfaces\ConversationRepositoryInterface;
-use App\Repositories\Interfaces\ParticipantRepositoryInterface;
-use App\Repositories\Interfaces\UserRepositoryInterface;
-use App\Support\Cache\CacheHelper;
+use App\Repositories\Redis\ConversationReadRepository;
+use App\Repositories\Eloquent\ConversationRepository;
+use App\Repositories\Eloquent\ParticipantRepository;
+use App\Repositories\Eloquent\UserRepository;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class ConversationService
 {
     public function __construct(
-        private readonly ConversationRepositoryInterface $conversationRepository,
-        private readonly UserRepositoryInterface $userRepository,
-        private readonly ParticipantRepositoryInterface $participantRepository,
-        private readonly ConversationReadRepositoryInterface $readRepository,
-        private readonly AttachmentsService $attachmentsService,
+        private readonly ConversationRepository $conversationRepository,
+        private readonly UserRepository $userRepository,
+        private readonly ParticipantRepository $participantRepository,
+        private readonly ConversationReadRepository $readRepository,
+        private readonly AttachmentService $attachmentService,
     ) {}
 
-    public function getConversationsForUser(User $user, int $perPage = 20)
+    public function getConversationsForUser(User $user, int $perPage = 20): CursorPaginator
     {
         return $this->conversationRepository->getForUser($user, $perPage);
     }
@@ -53,8 +52,7 @@ class ConversationService
                     $participant = $this->participantRepository->find($existingConversation, $initiator->id);
 
                     if ($participant && ! $participant->joined_at) {
-                        $participant->update(['joined_at' => now()]);
-                        DB::afterCommit(fn () => Cache::forget(CacheHelper::userConversations($initiator->id)));
+                        $this->participantRepository->markJoined($participant);
                     }
                 }
 
@@ -68,10 +66,6 @@ class ConversationService
             $this->participantRepository->add($conversation, $initiator, $joinNow ? now() : null);
             $this->participantRepository->add($conversation, $other, null);
 
-            if ($joinNow) {
-                DB::afterCommit(fn () => Cache::forget(CacheHelper::userConversations($initiator->id)));
-            }
-
             return $conversation;
         });
     }
@@ -80,7 +74,6 @@ class ConversationService
     {
         DB::transaction(function () use ($conversation, $user) {
             $participants = $this->participantRepository->getAll($conversation);
-            $affectedUserIds = $participants->pluck('user_id')->all();
             $joinedOtherIds = $participants
                 ->filter(fn ($p) => $p->joined_at !== null && $p->user_id !== $user->id)
                 ->pluck('user_id')
@@ -90,10 +83,10 @@ class ConversationService
             $this->conversationRepository->delete($conversation);
 
             $recipients = $this->userRepository->findManyByIds($joinedOtherIds);
-            broadcast(new ConversationDeletedEvent($conversationId, $recipients->all(), $affectedUserIds));
+            broadcast(new ConversationDeletedEvent($conversationId, $recipients->all()));
         });
 
-        $this->attachmentsService->deleteForConversation($conversation->id);
+        $this->attachmentService->deleteForConversation($conversation->id);
     }
 
     public function markConversationAsRead(Conversation $conversation, User $user): void

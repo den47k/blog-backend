@@ -68,11 +68,15 @@ class MessageController extends Controller
     {
         Gate::authorize('delete', $message);
 
-        $data = $this->messageService->deleteMessage($conversation, $message);
+        $deleted = $this->messageService->deleteMessage($conversation, $message);
 
         return response()->json([
             'message' => 'Message deleted successfully',
-            ...$data,
+            'deletedId' => $deleted->id,
+            'wasLastMessage' => $deleted->wasLastMessage,
+            'newLastMessage' => $deleted->newLastMessage
+                ? new MessageResource($deleted->newLastMessage)
+                : null,
         ]);
     }
 }

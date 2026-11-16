@@ -2,12 +2,13 @@
 
 namespace App\Services\Auth;
 
+use App\Enums\AuthStatus;
 use App\Enums\OtpPurpose;
 use App\Enums\TokenAbility;
 use App\Enums\UserStatus;
 use App\Models\User;
 use App\Notifications\EmailOtpNotification;
-use App\Repositories\Interfaces\UserRepositoryInterface;
+use App\Repositories\Eloquent\UserRepository;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -20,12 +21,12 @@ class RegistrationService
     public const REGISTER_TOKEN_TTL_MINUTES = 30;
 
     public function __construct(
-        private readonly UserRepositoryInterface $userRepository,
+        private readonly UserRepository $userRepository,
         private readonly OtpService $otpService,
         private readonly TokenService $tokenService,
     ) {}
 
-    public function start(string $email, string $password, ?string $ip = null): array
+    public function start(string $email, string $password, ?string $ip = null): AuthResult
     {
         $user = DB::transaction(function () use ($email, $password) {
             $existing = $this->userRepository->findByEmail($email);
@@ -65,11 +66,12 @@ class RegistrationService
             Carbon::now()->addMinutes(self::REGISTER_TOKEN_TTL_MINUTES),
         );
 
-        return [
-            'user' => $user,
-            'token' => $token,
-            'expires_in' => self::REGISTER_TOKEN_TTL_MINUTES * 60,
-        ];
+        return new AuthResult(
+            AuthStatus::PendingEmail,
+            $token,
+            $user,
+            expiresIn: self::REGISTER_TOKEN_TTL_MINUTES * 60,
+        );
     }
 
     public function verifyEmail(User $user, string $otp): void
@@ -110,15 +112,13 @@ class RegistrationService
             ]);
         }
 
-        $registrationToken = $user->currentAccessToken();
-
         $updated = DB::transaction(fn () => $this->userRepository->update($user, [
             'name' => $name,
             'tag' => $tag,
             'status' => UserStatus::Active,
         ]));
 
-        $registrationToken?->delete();
+        $this->tokenService->revokeCurrent($user);
 
         return $updated;
     }
@@ -155,6 +155,6 @@ class RegistrationService
 
     private function tagTaken(string $tag): bool
     {
-        return DB::table('users')->where('tag', $tag)->exists();
+        return $this->userRepository->tagExists($tag);
     }
 }

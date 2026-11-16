@@ -4,10 +4,10 @@ namespace App\Repositories\Eloquent;
 
 use App\Enums\UserStatus;
 use App\Models\User;
-use App\Repositories\Interfaces\UserRepositoryInterface;
+use DateTimeInterface;
 use Illuminate\Support\Collection;
 
-class UserRepository implements UserRepositoryInterface
+class UserRepository
 {
     public function findOrFail(string $id): User
     {
@@ -46,6 +46,37 @@ class UserRepository implements UserRepositoryInterface
         $user->forceFill(['email_verified_at' => now()])->save();
 
         return $user;
+    }
+
+    public function markPasswordChanged(User $user): void
+    {
+        $user->forceFill(['password_changed_at' => now()])->save();
+    }
+
+    public function setAvatar(User $user, ?array $paths): void
+    {
+        $user->forceFill(['avatar' => $paths])->save();
+    }
+
+    public function tagExists(string $tag): bool
+    {
+        return User::where('tag', $tag)->exists();
+    }
+
+    /** Ids of users still in the given registration status since before the cutoff. */
+    public function pendingOlderThan(UserStatus $status, DateTimeInterface $cutoff): Collection
+    {
+        return User::where('status', $status)
+            ->where('created_at', '<', $cutoff)
+            ->pluck('id');
+    }
+
+    /**
+     * @param  iterable<string>  $ids
+     */
+    public function deleteMany(iterable $ids): int
+    {
+        return User::whereIn('id', $ids)->delete();
     }
 
     public function search(string $query, string $excludeUserId, int $limit = 10): Collection

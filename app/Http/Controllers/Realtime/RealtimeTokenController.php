@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Realtime;
 
 use App\Broadcasting\CentrifugoBroadcaster;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Realtime\SubscribeRequest;
 use App\Services\Realtime\CentrifugoClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,13 +26,9 @@ class RealtimeTokenController extends Controller
         ]);
     }
 
-    public function subscribe(Request $request): JsonResponse
+    public function subscribe(SubscribeRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'channel' => ['required', 'string', 'max:255'],
-        ]);
-
-        $channel = $data['channel'];
+        $channel = $request->validated('channel');
 
         $broadcaster = Broadcast::driver('centrifugo');
         if (! $broadcaster instanceof CentrifugoBroadcaster) {

@@ -2,16 +2,15 @@
 
 namespace App\Services\User;
 
-use App\Events\User\UserUpdatedEvent;
 use App\Models\User;
-use App\Repositories\Interfaces\UserRepositoryInterface;
+use App\Repositories\Eloquent\UserRepository;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 
 class UserService
 {
     public function __construct(
-        private readonly UserRepositoryInterface $userRepository,
+        private readonly UserRepository $userRepository,
         private readonly AvatarService $avatarService,
     ) {}
 
@@ -20,18 +19,13 @@ class UserService
         $response = [];
 
         if ($name !== null) {
-            $user->name = $name;
-            $user->save();
+            $this->userRepository->update($user, ['name' => $name]);
             $response['name'] = $user->name;
         }
 
         if ($avatar !== null) {
-            $user->updateAvatar($avatar);
+            $this->replaceAvatar($user, $avatar);
             $response['avatar'] = $this->avatarService->getUrls($user->avatar);
-        }
-
-        if ($response !== []) {
-            event(new UserUpdatedEvent($user));
         }
 
         return $response;
@@ -39,12 +33,29 @@ class UserService
 
     public function deleteAvatar(User $user): void
     {
-        $user->deleteOldAvatar();
-        event(new UserUpdatedEvent($user));
+        $this->removeAvatar($user);
     }
 
     public function searchUsers(string $query, string $excludeUserId): Collection
     {
         return $this->userRepository->search($query, $excludeUserId);
+    }
+
+    private function replaceAvatar(User $user, UploadedFile $file): void
+    {
+        // Old files go first: the resized variants reuse the same paths.
+        $this->removeAvatar($user);
+
+        $this->userRepository->setAvatar($user, $this->avatarService->store($file, $user->id));
+    }
+
+    private function removeAvatar(User $user): void
+    {
+        if (empty($user->avatar)) {
+            return;
+        }
+
+        $this->avatarService->delete($user->avatar);
+        $this->userRepository->setAvatar($user, null);
     }
 }

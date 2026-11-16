@@ -3,17 +3,18 @@
 namespace App\Services\Messaging;
 
 use App\Models\MessageAttachment;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Drivers\Imagick\Driver;
 use Intervention\Image\ImageManager;
 
-class AttachmentsService
+class AttachmentService
 {
-    protected $disk;
+    private Filesystem $disk;
 
-    protected $imageManager;
+    private ImageManager $imageManager;
 
     public function __construct()
     {

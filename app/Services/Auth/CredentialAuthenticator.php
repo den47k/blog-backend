@@ -3,14 +3,14 @@
 namespace App\Services\Auth;
 
 use App\Models\User;
-use App\Repositories\Interfaces\UserRepositoryInterface;
+use App\Repositories\Eloquent\UserRepository;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class CredentialAuthenticator
 {
     public function __construct(
-        private readonly UserRepositoryInterface $userRepository,
+        private readonly UserRepository $userRepository,
     ) {}
 
     public function authenticate(string $email, string $password): User

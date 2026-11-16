@@ -29,8 +29,6 @@ class MessageDeletedEvent implements ShouldBroadcastNow, ShouldDispatchAfterComm
 
     public bool $hasUnread;
 
-    public string $authorId;
-
     public function __construct(
         Conversation $conversation,
         string $deletedId,
@@ -38,7 +36,6 @@ class MessageDeletedEvent implements ShouldBroadcastNow, ShouldDispatchAfterComm
         ?Message $newLastMessage,
         User $recipient,
         bool $hasUnread,
-        string $authorId,
     ) {
         $this->conversation = $conversation;
         $this->deletedId = $deletedId;
@@ -46,7 +43,6 @@ class MessageDeletedEvent implements ShouldBroadcastNow, ShouldDispatchAfterComm
         $this->newLastMessage = $newLastMessage ? (new MessageResource($newLastMessage))->resolve() : null;
         $this->recipient = $recipient;
         $this->hasUnread = $hasUnread;
-        $this->authorId = $authorId;
     }
 
     public function broadcastAs(): string

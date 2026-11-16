@@ -4,10 +4,10 @@ namespace App\Repositories\Eloquent;
 
 use App\Models\Conversation;
 use App\Models\Message;
-use App\Repositories\Interfaces\MessageRepositoryInterface;
+use App\Models\MessageAttachment;
 use Illuminate\Contracts\Pagination\CursorPaginator;
 
-class MessageRepository implements MessageRepositoryInterface
+class MessageRepository
 {
     public function getPaginated(Conversation $conversation, int $perPage = 30): CursorPaginator
     {
@@ -32,6 +32,11 @@ class MessageRepository implements MessageRepositoryInterface
         $message->save();
 
         return $message;
+    }
+
+    public function addAttachment(Message $message, array $fileData): MessageAttachment
+    {
+        return $message->attachment()->create(['file_data' => $fileData]);
     }
 
     public function update(Message $message, array $data): Message

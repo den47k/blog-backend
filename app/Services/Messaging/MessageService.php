@@ -6,30 +6,29 @@ use App\Events\Conversation\ConversationCreatedEvent;
 use App\Events\Message\MessageCreatedEvent;
 use App\Events\Message\MessageDeletedEvent;
 use App\Events\Message\MessageUpdatedEvent;
-use App\Http\Resources\Message\MessageResource;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
-use App\Repositories\Interfaces\ConversationReadRepositoryInterface;
-use App\Repositories\Interfaces\ConversationRepositoryInterface;
-use App\Repositories\Interfaces\MessageRepositoryInterface;
-use App\Repositories\Interfaces\ParticipantRepositoryInterface;
+use App\Repositories\Redis\ConversationReadRepository;
+use App\Repositories\Eloquent\ConversationRepository;
+use App\Repositories\Eloquent\MessageRepository;
+use App\Repositories\Eloquent\ParticipantRepository;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class MessageService
 {
     public function __construct(
-        private readonly MessageRepositoryInterface $messageRepository,
-        private readonly ConversationRepositoryInterface $conversationRepository,
-        private readonly ParticipantRepositoryInterface $participantRepository,
-        private readonly ConversationReadRepositoryInterface $readRepository,
-        private readonly AttachmentsService $attachmentsService,
+        private readonly MessageRepository $messageRepository,
+        private readonly ConversationRepository $conversationRepository,
+        private readonly ParticipantRepository $participantRepository,
+        private readonly ConversationReadRepository $readRepository,
+        private readonly AttachmentService $attachmentService,
         private readonly ConversationService $conversationService,
-    ) {
-    }
+    ) {}
 
-    public function getMessagesForConversation(Conversation $conversation, int $perPage = 30)
+    public function getMessagesForConversation(Conversation $conversation, int $perPage = 30): CursorPaginator
     {
         return $this->messageRepository->getPaginated($conversation, $perPage);
     }
@@ -40,17 +39,17 @@ class MessageService
         // path before the transaction: the upload must not run under the row lock.
         $messageId = (new Message)->newUniqueId();
         $fileData = isset($data['attachment'])
-            ? $this->attachmentsService->upload($conversation->id, $messageId, $data['attachment'])
+            ? $this->attachmentService->upload($conversation->id, $messageId, $data['attachment'])
             : null;
 
         try {
             $message = DB::transaction(function () use ($conversation, $user, $data, $messageId, $fileData) {
-                Conversation::whereKey($conversation->id)->lockForUpdate()->first();
+                $this->conversationRepository->lockForUpdate($conversation);
 
                 $message = $this->messageRepository->create($conversation, $user->id, $data['content'] ?? null, $messageId);
 
                 if ($fileData !== null) {
-                    $message->attachment()->create(['file_data' => $fileData]);
+                    $this->messageRepository->addAttachment($message, $fileData);
                 }
 
                 $this->conversationRepository->updateLastMessage($conversation, $message->id);
@@ -79,7 +78,7 @@ class MessageService
             });
         } catch (Throwable $e) {
             if ($fileData !== null) {
-                $this->attachmentsService->deletePaths($fileData);
+                $this->attachmentService->deletePaths($fileData);
             }
 
             throw $e;
@@ -90,7 +89,7 @@ class MessageService
         return $message;
     }
 
-    public function updateMessage(Message $message, array $data)
+    public function updateMessage(Message $message, array $data): Message
     {
         return DB::transaction(function () use ($message, $data) {
             $this->messageRepository->update($message, [
@@ -106,13 +105,12 @@ class MessageService
         });
     }
 
-    public function deleteMessage(Conversation $conversation, Message $message)
+    public function deleteMessage(Conversation $conversation, Message $message): DeletedMessage
     {
         $attachment = $message->attachment;
 
         $result = DB::transaction(function () use ($conversation, $message) {
-            Conversation::whereKey($conversation->id)->lockForUpdate()->first();
-            $conversation->refresh();
+            $this->conversationRepository->lockForUpdate($conversation);
 
             $wasLastMessage = $conversation->last_message_id === $message->id;
             $messageId = $message->id;
@@ -142,21 +140,14 @@ class MessageService
                     $newLastMessage,
                     $recipient,
                     $hasUnread,
-                    $message->user_id,
                 ))->toOthers();
             }
 
-            return [
-                'deletedId' => $messageId,
-                'wasLastMessage' => $wasLastMessage,
-                'newLastMessage' => $newLastMessage
-                    ? new MessageResource($newLastMessage)
-                    : null,
-            ];
+            return new DeletedMessage($messageId, $wasLastMessage, $newLastMessage);
         });
 
         if ($attachment) {
-            $this->attachmentsService->deleteFile($attachment);
+            $this->attachmentService->deleteFile($attachment);
         }
 
         return $result;

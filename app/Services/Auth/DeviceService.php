@@ -2,18 +2,17 @@
 
 namespace App\Services\Auth;
 
+use App\Enums\AuthStatus;
 use App\Enums\TokenAbility;
-use App\Events\Auth\DeviceRegistered;
-use App\Events\Auth\DeviceRevoked;
+use App\Events\Auth\AuthAudited;
 use App\Models\Device;
 use App\Models\User;
-use App\Repositories\Interfaces\DeviceRepositoryInterface;
+use App\Repositories\Eloquent\DeviceRepository;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Laravel\Sanctum\PersonalAccessToken;
 
 class DeviceService
 {
@@ -22,11 +21,11 @@ class DeviceService
     public const TWO_FACTOR_CHALLENGE_TTL_MINUTES = 5;
 
     public function __construct(
-        private readonly DeviceRepositoryInterface $deviceRepository,
+        private readonly DeviceRepository $deviceRepository,
         private readonly TokenService $tokenService,
     ) {}
 
-    public function issueOrChallenge(User $user, string $deviceName, Request $request): array
+    public function issueOrChallenge(User $user, string $deviceName, Request $request): AuthResult
     {
         if ($user->hasTwoFactorEnabled()) {
             $challenge = $this->tokenService->issueToken(
@@ -36,26 +35,20 @@ class DeviceService
                 Carbon::now()->addMinutes(self::TWO_FACTOR_CHALLENGE_TTL_MINUTES),
             );
 
-            return [
-                'kind' => '2fa_required',
-                'challenge_token' => $challenge,
-                'expires_in' => self::TWO_FACTOR_CHALLENGE_TTL_MINUTES * 60,
-            ];
+            return new AuthResult(
+                AuthStatus::TwoFactorRequired,
+                $challenge,
+                expiresIn: self::TWO_FACTOR_CHALLENGE_TTL_MINUTES * 60,
+            );
         }
 
-        $issued = $this->issueForUser($user, $deviceName, $request);
-
-        return [
-            'kind' => 'logged_in',
-            'token' => $issued['token'],
-            'device' => $issued['device'],
-        ];
+        return $this->issueForUser($user, $deviceName, $request);
     }
 
-    public function issueForUser(User $user, string $deviceName, Request $request): array
+    public function issueForUser(User $user, string $deviceName, Request $request): AuthResult
     {
         $result = DB::transaction(function () use ($user, $deviceName, $request) {
-            $newToken = $user->createToken($deviceName, ['*']);
+            $newToken = $this->tokenService->createToken($user, $deviceName);
 
             $ua = $this->parseUserAgent($request->userAgent());
 
@@ -72,18 +65,15 @@ class DeviceService
                 'last_seen_ip' => $request->ip(),
             ]);
 
-            return [
-                'token' => $newToken->plainTextToken,
-                'device' => $device,
-            ];
+            return new AuthResult(AuthStatus::LoggedIn, $newToken->plainTextToken, $user, $device);
         });
 
-        event(new DeviceRegistered($user, [
-            'device_id' => $result['device']->id,
-            'device_name' => $result['device']->device_name,
-            'client_type' => $result['device']->client_type,
-            'platform' => $result['device']->platform,
-            'browser' => $result['device']->browser,
+        event(new AuthAudited('device.registered', $user, [
+            'device_id' => $result->device->id,
+            'device_name' => $result->device->device_name,
+            'client_type' => $result->device->client_type,
+            'platform' => $result->device->platform,
+            'browser' => $result->device->browser,
             'ip' => $request->ip(),
         ]));
 
@@ -114,9 +104,10 @@ class DeviceService
             throw (new ModelNotFoundException)->setModel(Device::class, [$deviceId]);
         }
 
-        PersonalAccessToken::where('id', $device->personal_access_token_id)->delete();
+        // The device row is removed by the token's cascade.
+        $this->tokenService->revokeById($device->personal_access_token_id);
 
-        event(new DeviceRevoked($user, [
+        event(new AuthAudited('device.revoked', $user, [
             'device_id' => $device->id,
             'device_name' => $device->device_name,
         ]));
