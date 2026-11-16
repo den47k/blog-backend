@@ -51,7 +51,7 @@ class ConversationService
                     $participant = $this->participantRepository->find($existingConversation, $initiator->id);
 
                     if ($participant && ! $participant->joined_at) {
-                        $participant->update(['joined_at' => now()]);
+                        $this->participantRepository->markJoined($participant);
                     }
                 }
 

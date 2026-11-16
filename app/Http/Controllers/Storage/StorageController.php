@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Storage;
 
 use App\Http\Controllers\Controller;
-use App\Models\Conversation;
+use App\Repositories\ConversationRepository;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -13,6 +13,10 @@ class StorageController extends Controller
 {
     /** Types a browser may render from the API origin; everything else is downloaded. */
     private const INLINE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+    public function __construct(
+        private readonly ConversationRepository $conversationRepository,
+    ) {}
 
     public function __invoke(string $path): StreamedResponse
     {
@@ -58,6 +62,6 @@ class StorageController extends Controller
             abort(404);
         }
 
-        Gate::authorize('view', Conversation::findOrFail($segments[1]));
+        Gate::authorize('view', $this->conversationRepository->findOrFail($segments[1]));
     }
 }

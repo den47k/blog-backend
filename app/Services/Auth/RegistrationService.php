@@ -110,15 +110,13 @@ class RegistrationService
             ]);
         }
 
-        $registrationToken = $user->currentAccessToken();
-
         $updated = DB::transaction(fn () => $this->userRepository->update($user, [
             'name' => $name,
             'tag' => $tag,
             'status' => UserStatus::Active,
         ]));
 
-        $registrationToken?->delete();
+        $this->tokenService->revokeCurrent($user);
 
         return $updated;
     }
@@ -155,6 +153,6 @@ class RegistrationService
 
     private function tagTaken(string $tag): bool
     {
-        return DB::table('users')->where('tag', $tag)->exists();
+        return $this->userRepository->tagExists($tag);
     }
 }

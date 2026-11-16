@@ -13,7 +13,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Laravel\Sanctum\PersonalAccessToken;
 
 class DeviceService
 {
@@ -55,7 +54,7 @@ class DeviceService
     public function issueForUser(User $user, string $deviceName, Request $request): array
     {
         $result = DB::transaction(function () use ($user, $deviceName, $request) {
-            $newToken = $user->createToken($deviceName, ['*']);
+            $newToken = $this->tokenService->createToken($user, $deviceName);
 
             $ua = $this->parseUserAgent($request->userAgent());
 
@@ -114,7 +113,8 @@ class DeviceService
             throw (new ModelNotFoundException)->setModel(Device::class, [$deviceId]);
         }
 
-        PersonalAccessToken::where('id', $device->personal_access_token_id)->delete();
+        // The device row is removed by the token's cascade.
+        $this->tokenService->revokeById($device->personal_access_token_id);
 
         event(new DeviceRevoked($user, [
             'device_id' => $device->id,

@@ -24,6 +24,18 @@ class ParticipantRepository
             ->first();
     }
 
+    public function exists(Conversation $conversation, string $userId): bool
+    {
+        return $conversation->participants()
+            ->where('user_id', $userId)
+            ->exists();
+    }
+
+    public function markJoined(Participant $participant): void
+    {
+        $participant->update(['joined_at' => now()]);
+    }
+
     public function getAll(Conversation $conversation): Collection
     {
         return $conversation->participants()

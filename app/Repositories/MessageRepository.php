@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\MessageAttachment;
 use Illuminate\Contracts\Pagination\CursorPaginator;
 
 class MessageRepository
@@ -31,6 +32,11 @@ class MessageRepository
         $message->save();
 
         return $message;
+    }
+
+    public function addAttachment(Message $message, array $fileData): MessageAttachment
+    {
+        return $message->attachment()->create(['file_data' => $fileData]);
     }
 
     public function update(Message $message, array $data): Message

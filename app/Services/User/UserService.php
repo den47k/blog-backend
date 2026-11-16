@@ -19,13 +19,12 @@ class UserService
         $response = [];
 
         if ($name !== null) {
-            $user->name = $name;
-            $user->save();
+            $this->userRepository->update($user, ['name' => $name]);
             $response['name'] = $user->name;
         }
 
         if ($avatar !== null) {
-            $user->updateAvatar($avatar);
+            $this->replaceAvatar($user, $avatar);
             $response['avatar'] = $this->avatarService->getUrls($user->avatar);
         }
 
@@ -34,7 +33,25 @@ class UserService
 
     public function deleteAvatar(User $user): void
     {
-        $user->deleteOldAvatar();
+        $this->removeAvatar($user);
+    }
+
+    private function replaceAvatar(User $user, UploadedFile $file): void
+    {
+        // Old files go first: the resized variants reuse the same paths.
+        $this->removeAvatar($user);
+
+        $this->userRepository->setAvatar($user, $this->avatarService->store($file, $user->id));
+    }
+
+    private function removeAvatar(User $user): void
+    {
+        if (empty($user->avatar)) {
+            return;
+        }
+
+        $this->avatarService->delete($user->avatar);
+        $this->userRepository->setAvatar($user, null);
     }
 
     public function searchUsers(string $query, string $excludeUserId): Collection

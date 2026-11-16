@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Conversation;
 use App\Models\User;
+use App\Repositories\ConversationRepository;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Str;
 
@@ -11,7 +11,7 @@ Broadcast::channel(
 );
 
 Broadcast::channel('conversation.{conversationId}', function (User $user, string $conversationId) {
-    $conversation = Str::isUuid($conversationId) ? Conversation::find($conversationId) : null;
+    $conversation = Str::isUuid($conversationId) ? app(ConversationRepository::class)->find($conversationId) : null;
 
     return $conversation !== null && $user->can('view', $conversation);
 });

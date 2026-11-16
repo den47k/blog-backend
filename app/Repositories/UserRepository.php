@@ -47,6 +47,21 @@ class UserRepository
         return $user;
     }
 
+    public function markPasswordChanged(User $user): void
+    {
+        $user->forceFill(['password_changed_at' => now()])->save();
+    }
+
+    public function setAvatar(User $user, ?array $paths): void
+    {
+        $user->forceFill(['avatar' => $paths])->save();
+    }
+
+    public function tagExists(string $tag): bool
+    {
+        return User::where('tag', $tag)->exists();
+    }
+
     public function search(string $query, string $excludeUserId, int $limit = 10): Collection
     {
         $pattern = '%'.addcslashes($query, '%_\\').'%';

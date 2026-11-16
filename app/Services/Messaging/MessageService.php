@@ -45,12 +45,12 @@ class MessageService
 
         try {
             $message = DB::transaction(function () use ($conversation, $user, $data, $messageId, $fileData) {
-                Conversation::whereKey($conversation->id)->lockForUpdate()->first();
+                $this->conversationRepository->lockForUpdate($conversation);
 
                 $message = $this->messageRepository->create($conversation, $user->id, $data['content'] ?? null, $messageId);
 
                 if ($fileData !== null) {
-                    $message->attachment()->create(['file_data' => $fileData]);
+                    $this->messageRepository->addAttachment($message, $fileData);
                 }
 
                 $this->conversationRepository->updateLastMessage($conversation, $message->id);
@@ -111,8 +111,7 @@ class MessageService
         $attachment = $message->attachment;
 
         $result = DB::transaction(function () use ($conversation, $message) {
-            Conversation::whereKey($conversation->id)->lockForUpdate()->first();
-            $conversation->refresh();
+            $this->conversationRepository->lockForUpdate($conversation);
 
             $wasLastMessage = $conversation->last_message_id === $message->id;
             $messageId = $message->id;

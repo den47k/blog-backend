@@ -178,8 +178,6 @@ class OAuthService
             ]);
         }
 
-        $linkToken = $user->currentAccessToken();
-
         $user = DB::transaction(function () use ($user, $cached) {
             $this->identityRepository->create([
                 'user_id' => $user->id,
@@ -202,7 +200,7 @@ class OAuthService
             return $user;
         });
 
-        $linkToken?->delete();
+        $this->tokenService->revokeCurrent($user);
 
         event(new OAuthIdentityLinked($user, [
             'provider' => $cached['provider'],
@@ -215,17 +213,13 @@ class OAuthService
 
     public function unlink(User $user, string $identityId): void
     {
-        $identity = OAuthIdentity::where('user_id', $user->id)
-            ->where('id', $identityId)
-            ->first();
+        $identity = $this->identityRepository->findForUser($user, $identityId);
 
         if (! $identity) {
             throw (new ModelNotFoundException)->setModel(OAuthIdentity::class, [$identityId]);
         }
 
-        $remaining = OAuthIdentity::where('user_id', $user->id)
-            ->where('id', '!=', $identityId)
-            ->count();
+        $remaining = $this->identityRepository->countOthersForUser($user, $identityId);
 
         // password_changed_at is only set when the user chose a password themselves;
         // accounts created through OAuth hold a random one nobody knows.

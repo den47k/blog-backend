@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\User\AuthenticatedUserResource;
 use App\Services\Auth\DeviceService;
+use App\Services\Auth\TokenService;
 use App\Services\Auth\TwoFactorService;
 use Illuminate\Http\Request;
 
@@ -13,6 +14,7 @@ class TwoFactorController extends Controller
     public function __construct(
         private readonly TwoFactorService $twoFactorService,
         private readonly DeviceService $deviceService,
+        private readonly TokenService $tokenService,
     ) {}
 
     public function enable(Request $request)
@@ -49,7 +51,7 @@ class TwoFactorController extends Controller
             $request->input('recovery_code'),
         );
 
-        $request->user()->currentAccessToken()?->delete();
+        $this->tokenService->revokeCurrent($user);
 
         $issued = $this->deviceService->issueForUser(
             $user,

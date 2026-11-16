@@ -4,9 +4,14 @@ namespace App\Policies;
 
 use App\Models\Conversation;
 use App\Models\User;
+use App\Repositories\ParticipantRepository;
 
 class ConversationPolicy
 {
+    public function __construct(
+        private readonly ParticipantRepository $participantRepository,
+    ) {}
+
     public function view(User $user, Conversation $conversation): bool
     {
         return $this->isParticipant($user, $conversation);
@@ -24,6 +29,6 @@ class ConversationPolicy
 
     private function isParticipant(User $user, Conversation $conversation): bool
     {
-        return $conversation->participants()->where('user_id', $user->id)->exists();
+        return $this->participantRepository->exists($conversation, $user->id);
     }
 }
