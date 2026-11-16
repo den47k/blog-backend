@@ -70,6 +70,15 @@ class AttachmentsService
         }
     }
 
+    public function deleteForConversation(string $conversationId): void
+    {
+        try {
+            $this->disk->deleteDirectory("attachments/{$conversationId}");
+        } catch (\Exception $e) {
+            Log::error('Failed to delete conversation attachments from storage: '.$e->getMessage());
+        }
+    }
+
     protected function getFileType(UploadedFile $file): string
     {
         $mime = $file->getMimeType();
@@ -86,7 +95,7 @@ class AttachmentsService
     {
         try {
             $thumbnail = $this->imageManager->read($file->getRealPath())
-                ->resize(300, 300)
+                ->scaleDown(300, 300)
                 ->toJpeg();
             $thumbPath = "{$path}/thumb_".$file->hashName().'.jpg';
             $this->disk->put($thumbPath, $thumbnail->toString());

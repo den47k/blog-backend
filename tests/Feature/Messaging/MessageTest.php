@@ -252,6 +252,10 @@ class MessageTest extends TestCase
         $this->assertStringStartsWith($directory.'thumb_', $data['thumbnail']);
         Storage::disk('s3')->assertExists([$data['original'], $data['thumbnail']]);
 
+        // Scaled down to fit 300x300 without changing the 4:3 aspect ratio.
+        [$width, $height] = getimagesizefromstring(Storage::disk('s3')->get($data['thumbnail']));
+        $this->assertSame([300, 225], [$width, $height]);
+
         $this->assertSame(route('api.storage', ['path' => $data['original']]), $urls['original']);
         $this->assertSame(route('api.storage', ['path' => $data['thumbnail']]), $urls['thumbnail']);
 

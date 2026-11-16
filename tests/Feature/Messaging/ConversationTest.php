@@ -4,6 +4,8 @@ namespace Tests\Feature\Messaging;
 
 use App\Models\Conversation;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\AssertsApiContract;
 use Tests\TestCase;
 
@@ -335,6 +337,25 @@ class ConversationTest extends TestCase
             ->getJson('/api/conversations')
             ->assertOk()
             ->assertJsonCount(0, 'data');
+    }
+
+    public function test_deleting_a_conversation_removes_its_attachment_files_only(): void
+    {
+        $user = User::factory()->create();
+        $conversation = $this->privateConversation($user, User::factory()->create());
+        $other = $this->privateConversation($user, User::factory()->create());
+
+        $this->actingAsUser($user);
+        foreach ([$conversation, $other] as $target) {
+            $this->post("/api/conversations/{$target->id}/messages", [
+                'attachment' => UploadedFile::fake()->image('photo.jpg', 640, 480),
+            ], ['Accept' => 'application/json'])->assertCreated();
+        }
+
+        $this->deleteJson("/api/conversations/{$conversation->id}")->assertOk();
+
+        $this->assertSame([], Storage::disk('s3')->allFiles("attachments/{$conversation->id}"));
+        $this->assertCount(2, Storage::disk('s3')->allFiles("attachments/{$other->id}"));
     }
 
     public function test_non_participant_cannot_delete_a_conversation(): void

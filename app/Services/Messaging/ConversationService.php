@@ -21,6 +21,7 @@ class ConversationService
         private readonly UserRepositoryInterface $userRepository,
         private readonly ParticipantRepositoryInterface $participantRepository,
         private readonly ConversationReadRepositoryInterface $readRepository,
+        private readonly AttachmentsService $attachmentsService,
     ) {}
 
     public function getConversationsForUser(User $user, int $perPage = 20)
@@ -91,6 +92,8 @@ class ConversationService
             $recipients = $this->userRepository->findManyByIds($joinedOtherIds);
             broadcast(new ConversationDeletedEvent($conversationId, $recipients->all(), $affectedUserIds));
         });
+
+        $this->attachmentsService->deleteForConversation($conversation->id);
     }
 
     public function markConversationAsRead(Conversation $conversation, User $user): void
