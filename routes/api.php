@@ -17,14 +17,3 @@ Route::middleware(['auth:sanctum', 'abilities:*', 'verified'])->group(function (
         ->where('path', '.*')
         ->name('api.storage');
 });
-
-/* Test routes */
-Route::get('/test', fn () => response()->json([
-    'message' => 'test message',
-    'time' => now()->toDateTimeString(),
-]));
-
-Route::post('/test', fn () => response()->json([
-    'message' => 'test message',
-    'time' => now()->toDateTimeString(),
-]));
