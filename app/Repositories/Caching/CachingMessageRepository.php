@@ -27,9 +27,9 @@ class CachingMessageRepository implements MessageRepositoryInterface
         );
     }
 
-    public function create(Conversation $conversation, string $userId, ?string $content): Message
+    public function create(Conversation $conversation, string $userId, ?string $content, ?string $id = null): Message
     {
-        return $this->inner->create($conversation, $userId, $content);
+        return $this->inner->create($conversation, $userId, $content, $id);
     }
 
     public function update(Message $message, array $data): Message

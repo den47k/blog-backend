@@ -53,7 +53,7 @@ class ConversationService
 
                     if ($participant && ! $participant->joined_at) {
                         $participant->update(['joined_at' => now()]);
-                        Cache::forget(CacheHelper::userConversations($initiator->id));
+                        DB::afterCommit(fn () => Cache::forget(CacheHelper::userConversations($initiator->id)));
                     }
                 }
 
@@ -68,7 +68,7 @@ class ConversationService
             $this->participantRepository->add($conversation, $other, null);
 
             if ($joinNow) {
-                Cache::forget(CacheHelper::userConversations($initiator->id));
+                DB::afterCommit(fn () => Cache::forget(CacheHelper::userConversations($initiator->id)));
             }
 
             return $conversation;

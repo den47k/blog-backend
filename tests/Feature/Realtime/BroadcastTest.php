@@ -3,9 +3,13 @@
 namespace Tests\Feature\Realtime;
 
 use App\Models\Conversation;
+use App\Models\Message;
 use App\Models\User;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 use Tests\Concerns\AssertsApiContract;
 use Tests\TestCase;
 
@@ -114,7 +118,7 @@ class BroadcastTest extends TestCase
     {
         $this->actingAsUser($this->author)
             ->post("/api/conversations/{$this->conversation->id}/messages", [
-                'attachment' => \Illuminate\Http\UploadedFile::fake()->image('photo.jpg', 640, 480),
+                'attachment' => UploadedFile::fake()->image('photo.jpg', 640, 480),
             ], ['Accept' => 'application/json'])
             ->assertCreated();
 
@@ -338,6 +342,48 @@ class BroadcastTest extends TestCase
 
         $this->assertSame([], $this->centrifugoPublications());
         Http::assertNothingSent();
+    }
+
+    // ------------------------------------------------------------ rollback
+
+    public function test_a_send_that_rolls_back_publishes_nothing_and_leaves_no_trace(): void
+    {
+        $recipient = User::factory()->create();
+        $conversation = $this->privateConversation($this->author, $recipient, joined: false);
+
+        // Fails after the message row is written and both events are raised.
+        Conversation::updating(fn () => throw new RuntimeException('forced'));
+
+        $this->actingAsUser($this->author)
+            ->post("/api/conversations/{$conversation->id}/messages", [
+                'attachment' => UploadedFile::fake()->image('photo.jpg', 640, 480),
+            ], ['Accept' => 'application/json'])
+            ->assertServerError();
+
+        Http::assertNothingSent();
+        $this->assertDatabaseCount('messages', 0);
+        $this->assertDatabaseCount('message_attachments', 0);
+        $this->assertSame([], Storage::disk('s3')->allFiles());
+    }
+
+    public function test_a_delete_that_rolls_back_publishes_nothing_and_keeps_the_files(): void
+    {
+        $messageId = $this->actingAsUser($this->author)
+            ->post("/api/conversations/{$this->conversation->id}/messages", [
+                'attachment' => UploadedFile::fake()->image('photo.jpg', 640, 480),
+            ], ['Accept' => 'application/json'])
+            ->assertCreated()
+            ->json('data.message.id');
+
+        Message::deleting(fn () => throw new RuntimeException('forced'));
+
+        $this->deleteJson("/api/conversations/{$this->conversation->id}/messages/{$messageId}")
+            ->assertServerError();
+
+        $this->assertSame([], $this->centrifugoPublicationsOf('MessageDeletedEvent'));
+        $this->assertDatabaseHas('messages', ['id' => $messageId]);
+        $this->assertSame($messageId, $this->conversation->fresh()->last_message_id);
+        $this->assertCount(2, Storage::disk('s3')->allFiles());
     }
 
     // ----------------------------------------------------- nothing published

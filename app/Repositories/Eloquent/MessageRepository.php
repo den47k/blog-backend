@@ -18,12 +18,20 @@ class MessageRepository implements MessageRepositoryInterface
             ->cursorPaginate($perPage);
     }
 
-    public function create(Conversation $conversation, string $userId, ?string $content): Message
+    public function create(Conversation $conversation, string $userId, ?string $content, ?string $id = null): Message
     {
-        return $conversation->messages()->create([
+        $message = $conversation->messages()->make([
             'user_id' => $userId,
             'content' => $content,
         ]);
+
+        if ($id !== null) {
+            $message->id = $id;
+        }
+
+        $message->save();
+
+        return $message;
     }
 
     public function update(Message $message, array $data): Message

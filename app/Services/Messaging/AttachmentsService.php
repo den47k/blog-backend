@@ -2,7 +2,6 @@
 
 namespace App\Services\Messaging;
 
-use App\Models\Message;
 use App\Models\MessageAttachment;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
@@ -22,9 +21,13 @@ class AttachmentsService
         $this->imageManager = new ImageManager(new Driver);
     }
 
-    public function storeForMessage(Message $message, UploadedFile $file): void
+    /**
+     * Uploads the file (and a thumbnail for images) and returns the
+     * file_data to store on the attachment row.
+     */
+    public function upload(string $conversationId, string $messageId, UploadedFile $file): array
     {
-        $path = "attachments/{$message->conversation_id}/{$message->id}";
+        $path = "attachments/{$conversationId}/{$messageId}";
         $fileName = $file->hashName();
 
         $filePath = $this->disk->putFileAs($path, $file, $fileName, 'public');
@@ -41,26 +44,29 @@ class AttachmentsService
             $fileData['thumbnail'] = $this->generateThumbnail($file, $path);
         }
 
-        $message->attachment()->create(['file_data' => $fileData]);
+        return $fileData;
     }
 
     public function deleteFile(MessageAttachment $attachment): void
     {
-        $pathsToDelete = [];
+        $this->deletePaths($attachment->file_data);
+    }
 
-        if (! empty($attachment->file_data['original'])) {
-            $pathsToDelete[] = $attachment->file_data['original'];
-        }
-        if (! empty($attachment->file_data['thumbnail'])) {
-            $pathsToDelete[] = $attachment->file_data['thumbnail'];
+    public function deletePaths(array $fileData): void
+    {
+        $paths = array_values(array_filter([
+            $fileData['original'] ?? null,
+            $fileData['thumbnail'] ?? null,
+        ]));
+
+        if ($paths === []) {
+            return;
         }
 
-        if (! empty($pathsToDelete)) {
-            try {
-                $this->disk->delete($pathsToDelete);
-            } catch (\Exception $e) {
-                Log::error('Failed to delete attachment files from storage: '.$e->getMessage());
-            }
+        try {
+            $this->disk->delete($paths);
+        } catch (\Exception $e) {
+            Log::error('Failed to delete attachment files from storage: '.$e->getMessage());
         }
     }
 

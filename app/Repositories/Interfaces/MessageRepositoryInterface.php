@@ -10,7 +10,7 @@ interface MessageRepositoryInterface
 {
     public function getPaginated(Conversation $conversation, int $perPage = 30): CursorPaginator;
 
-    public function create(Conversation $conversation, string $userId, ?string $content): Message;
+    public function create(Conversation $conversation, string $userId, ?string $content, ?string $id = null): Message;
 
     public function update(Message $message, array $data): Message;
 
