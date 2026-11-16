@@ -108,7 +108,9 @@ abstract class TestCase extends BaseTestCase
         return Http::recorded(
             fn (Request $request) => $request->url() === $this->centrifugoUrl().'/api/broadcast'
         )
-            ->map(fn (array $pair) => $pair[0]->data())
+            // Decode the raw body: data() still holds nested JsonResource
+            // objects, the client only ever sees their JSON form.
+            ->map(fn (array $pair) => json_decode($pair[0]->body(), true, flags: JSON_THROW_ON_ERROR))
             ->values()
             ->all();
     }
