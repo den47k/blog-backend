@@ -86,7 +86,7 @@ class OAuthService
 
         $identity = $this->identityRepository->findByProviderUid($provider, $providerUid);
         if ($identity) {
-            return ['kind' => 'logged_in', 'user' => $identity->user];
+            return $this->outcomeFor($identity->user, $request);
         }
 
         $localUser = $providerEmail
@@ -97,7 +97,7 @@ class OAuthService
             if ($localUser->email_verified_at && $pVerified) {
                 $this->createIdentity($localUser, $provider, $providerUid, $providerEmail, $pVerified, $socialUser);
 
-                return ['kind' => 'logged_in', 'user' => $localUser];
+                return $this->outcomeFor($localUser, $request);
             }
 
             Cache::put(
@@ -141,18 +141,7 @@ class OAuthService
                 return $user;
             });
 
-            $regToken = $this->tokenService->issueToken(
-                $newUser,
-                'registration',
-                [TokenAbility::RegisterPending->value],
-                Carbon::now()->addMinutes(self::REGISTER_TTL_MINUTES),
-            );
-
-            return [
-                'kind' => 'pending_profile',
-                'token' => $regToken,
-                'expires_in' => self::REGISTER_TTL_MINUTES * 60,
-            ];
+            return $this->outcomeFor($newUser, $request);
         }
 
         $newUser = DB::transaction(function () use ($providerEmail, $socialUser, $provider, $providerUid, $pVerified) {
@@ -169,21 +158,7 @@ class OAuthService
             return $user;
         });
 
-        $code = $this->otpService->issue($providerEmail, OtpPurpose::Register, $request->ip());
-        $newUser->notify(new EmailOtpNotification($code, OtpPurpose::Register->value));
-
-        $regToken = $this->tokenService->issueToken(
-            $newUser,
-            'registration',
-            [TokenAbility::RegisterPending->value],
-            Carbon::now()->addMinutes(self::REGISTER_TTL_MINUTES),
-        );
-
-        return [
-            'kind' => 'pending_email',
-            'token' => $regToken,
-            'expires_in' => self::REGISTER_TTL_MINUTES * 60,
-        ];
+        return $this->outcomeFor($newUser, $request);
     }
 
     public function confirmLink(User $user, string $provider, string $password, Request $request): array
@@ -235,42 +210,7 @@ class OAuthService
             'provider_email' => $cached['provider_email'],
         ]));
 
-        if ($user->status === UserStatus::Active) {
-            return ['kind' => 'logged_in', 'user' => $user];
-        }
-
-        if ($user->status === UserStatus::PendingEmail) {
-            $code = $this->otpService->issue($user->email, OtpPurpose::Register, $request->ip());
-            $user->notify(new EmailOtpNotification($code, OtpPurpose::Register->value));
-
-            $regToken = $this->tokenService->issueToken(
-                $user,
-                'registration',
-                [TokenAbility::RegisterPending->value],
-                Carbon::now()->addMinutes(self::REGISTER_TTL_MINUTES),
-            );
-
-            return [
-                'kind' => 'pending_email',
-                'user' => $user,
-                'token' => $regToken,
-                'expires_in' => self::REGISTER_TTL_MINUTES * 60,
-            ];
-        }
-
-        $regToken = $this->tokenService->issueToken(
-            $user,
-            'registration',
-            [TokenAbility::RegisterPending->value],
-            Carbon::now()->addMinutes(self::REGISTER_TTL_MINUTES),
-        );
-
-        return [
-            'kind' => 'pending_profile',
-            'user' => $user,
-            'token' => $regToken,
-            'expires_in' => self::REGISTER_TTL_MINUTES * 60,
-        ];
+        return $this->outcomeFor($user, $request);
     }
 
     public function unlink(User $user, string $identityId): void
@@ -302,6 +242,33 @@ class OAuthService
             'provider' => $provider,
             'provider_user_id' => $providerUid,
         ]));
+    }
+
+    /**
+     * A full login only for active users; anyone still in registration
+     * gets a registration token for the step they stopped at.
+     */
+    private function outcomeFor(User $user, Request $request): array
+    {
+        if ($user->status === UserStatus::Active) {
+            return ['kind' => 'logged_in', 'user' => $user];
+        }
+
+        if ($user->status === UserStatus::PendingEmail) {
+            $code = $this->otpService->issue($user->email, OtpPurpose::Register, $request->ip());
+            $user->notify(new EmailOtpNotification($code, OtpPurpose::Register->value));
+        }
+
+        return [
+            'kind' => $user->status->value,
+            'token' => $this->tokenService->issueToken(
+                $user,
+                'registration',
+                [TokenAbility::RegisterPending->value],
+                Carbon::now()->addMinutes(self::REGISTER_TTL_MINUTES),
+            ),
+            'expires_in' => self::REGISTER_TTL_MINUTES * 60,
+        ];
     }
 
     private function createIdentity(

@@ -163,6 +163,55 @@ class OAuthTest extends TestCase
         $this->assertSame(0, $user->devices()->count());
     }
 
+    public function test_callback_resumes_the_profile_step_for_a_user_who_never_finished_it(): void
+    {
+        $user = User::factory()->pendingProfile()->create();
+        $this->identityFor($user);
+        $this->fakeProviderUser('github', 'gh-1', $user->email);
+        $this->storeState('github');
+
+        $this->oauthCallback('github')
+            ->assertOk()
+            ->assertJsonStructure(self::PENDING_KEYS)
+            ->assertJsonMissingPath('token')
+            ->assertJsonPath('status', 'pending_profile');
+
+        $this->assertSame([TokenAbility::RegisterPending->value], $user->tokens()->sole()->abilities);
+        $this->assertSame(0, $user->devices()->count());
+    }
+
+    public function test_callback_resumes_the_email_step_for_a_user_who_never_verified(): void
+    {
+        $user = User::factory()->pendingEmail()->create();
+        $this->identityFor($user);
+        $this->fakeProviderUser('github', 'gh-1', $user->email);
+        $this->storeState('github');
+
+        $this->oauthCallback('github')
+            ->assertOk()
+            ->assertJsonStructure(self::PENDING_KEYS)
+            ->assertJsonMissingPath('token')
+            ->assertJsonPath('status', 'pending_email');
+
+        $this->assertSame([TokenAbility::RegisterPending->value], $user->tokens()->sole()->abilities);
+        Notification::assertSentTo($user, EmailOtpNotification::class);
+    }
+
+    public function test_callback_does_not_log_in_an_auto_linked_user_with_an_unfinished_profile(): void
+    {
+        $user = User::factory()->pendingProfile()->create();
+        $this->fakeProviderUser('google', 'g-1', $user->email, ['email_verified' => true]);
+        $this->storeState('google');
+
+        $this->oauthCallback('google')
+            ->assertOk()
+            ->assertJsonStructure(self::PENDING_KEYS)
+            ->assertJsonMissingPath('token')
+            ->assertJsonPath('status', 'pending_profile');
+
+        $this->assertDatabaseHas('oauth_identities', ['user_id' => $user->id, 'provider' => 'google']);
+    }
+
     public function test_callback_with_a_verified_new_email_starts_at_the_profile_step(): void
     {
         $this->fakeProviderUser('github', 'gh-new', 'fresh@example.com');
