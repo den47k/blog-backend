@@ -12,7 +12,9 @@ Route::prefix('conversations')->group(function () {
     Route::post('/{conversation:id}/mark-as-read', [ConversationController::class, 'markAsRead'])->name('conversation.markAsRead');
 
     Route::get('/{conversation:id}/messages', [MessageController::class, 'index'])->name('conversation.messages.index');
-    Route::post('/{conversation:id}/messages', [MessageController::class, 'store'])->name('conversation.messages.store');
+    Route::post('/{conversation:id}/messages', [MessageController::class, 'store'])
+        ->middleware('throttle:messages')
+        ->name('conversation.messages.store');
 
     Route::scopeBindings()->group(function () {
         Route::patch('/{conversation:id}/messages/{message:id}', [MessageController::class, 'update'])->name('conversation.messages.update');

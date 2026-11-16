@@ -11,9 +11,8 @@ Route::middleware('throttle:auth-burst')->group(function () {
     Route::post('/auth/login', [SessionController::class, 'login']);
     Route::post('/auth/register/start', [RegisterController::class, 'start']);
     Route::post('/forgot-password', [ResetPasswordController::class, 'requestResetLink'])->name('password.email');
+    Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
 });
-
-Route::post('/reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
 
 Route::middleware(['auth:sanctum', 'abilities:register:pending'])->group(function () {
     Route::middleware('throttle:auth-otp')->group(function () {

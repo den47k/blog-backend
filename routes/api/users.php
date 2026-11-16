@@ -4,7 +4,7 @@ use App\Http\Controllers\User\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('users')->group(function () {
-    Route::get('/search', [UserController::class, 'search'])->name('users.search');
+    Route::get('/search', [UserController::class, 'search'])->middleware('throttle:search')->name('users.search');
     Route::put('/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/{user}/avatar', [UserController::class, 'deleteAvatar'])->name('users.deleteAvatar');
 });
