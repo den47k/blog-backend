@@ -2,13 +2,6 @@
 
 namespace App\Providers;
 
-use App\Events\Auth\DeviceRegistered;
-use App\Events\Auth\DeviceRevoked;
-use App\Events\Auth\OAuthIdentityLinked;
-use App\Events\Auth\OAuthIdentityUnlinked;
-use App\Events\Auth\TwoFactorDisabled;
-use App\Events\Auth\TwoFactorEnabled;
-use App\Listeners\Auth\LogAuditEvent;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Policies\ConversationPolicy;
@@ -16,7 +9,6 @@ use App\Policies\MessagePolicy;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -35,17 +27,6 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(Conversation::class, ConversationPolicy::class);
         Gate::policy(Message::class, MessagePolicy::class);
-
-        foreach ([
-            DeviceRegistered::class,
-            DeviceRevoked::class,
-            TwoFactorEnabled::class,
-            TwoFactorDisabled::class,
-            OAuthIdentityLinked::class,
-            OAuthIdentityUnlinked::class,
-        ] as $eventClass) {
-            Event::listen($eventClass, LogAuditEvent::class);
-        }
 
         $this->configureRateLimiters();
 

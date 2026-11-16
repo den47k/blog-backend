@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\OAuthConfirmLinkRequest;
 use App\Http\Responses\AuthResponse;
 use App\Services\Auth\OAuthService;
 use Illuminate\Http\JsonResponse;
@@ -29,18 +30,13 @@ class OAuthController extends Controller
         ));
     }
 
-    public function confirmLink(Request $request, string $provider): JsonResponse
+    public function confirmLink(OAuthConfirmLinkRequest $request, string $provider): JsonResponse
     {
-        $request->validate([
-            'password' => ['required', 'string'],
-            'device_name' => ['required', 'string', 'max:128'],
-        ]);
-
         return AuthResponse::from($this->oauthService->confirmLink(
             $request->user(),
             $provider,
-            $request->input('password'),
-            $request->input('device_name'),
+            $request->validated('password'),
+            $request->validated('device_name'),
             $request,
         ));
     }

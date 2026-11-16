@@ -6,8 +6,7 @@ use App\Enums\AuthStatus;
 use App\Enums\OtpPurpose;
 use App\Enums\TokenAbility;
 use App\Enums\UserStatus;
-use App\Events\Auth\OAuthIdentityLinked;
-use App\Events\Auth\OAuthIdentityUnlinked;
+use App\Events\Auth\AuthAudited;
 use App\Models\OAuthIdentity;
 use App\Models\User;
 use App\Notifications\EmailOtpNotification;
@@ -180,7 +179,7 @@ class OAuthService
 
         $this->tokenService->revokeCurrent($user);
 
-        event(new OAuthIdentityLinked($user, [
+        event(new AuthAudited('oauth.identity.linked', $user, [
             'provider' => $cached['provider'],
             'provider_user_id' => $cached['provider_user_id'],
             'provider_email' => $cached['provider_email'],
@@ -212,7 +211,7 @@ class OAuthService
 
         $this->identityRepository->delete($identity);
 
-        event(new OAuthIdentityUnlinked($user, [
+        event(new AuthAudited('oauth.identity.unlinked', $user, [
             'provider' => $provider,
             'provider_user_id' => $providerUid,
         ]));
@@ -289,7 +288,7 @@ class OAuthService
             'linked_at' => now(),
         ]);
 
-        event(new OAuthIdentityLinked($user, [
+        event(new AuthAudited('oauth.identity.linked', $user, [
             'provider' => $provider,
             'provider_user_id' => $providerUid,
             'provider_email' => $providerEmail,

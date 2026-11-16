@@ -4,8 +4,7 @@ namespace App\Services\Auth;
 
 use App\Enums\AuthStatus;
 use App\Enums\TokenAbility;
-use App\Events\Auth\DeviceRegistered;
-use App\Events\Auth\DeviceRevoked;
+use App\Events\Auth\AuthAudited;
 use App\Models\Device;
 use App\Models\User;
 use App\Repositories\DeviceRepository;
@@ -69,7 +68,7 @@ class DeviceService
             return new AuthResult(AuthStatus::LoggedIn, $newToken->plainTextToken, $user, $device);
         });
 
-        event(new DeviceRegistered($user, [
+        event(new AuthAudited('device.registered', $user, [
             'device_id' => $result->device->id,
             'device_name' => $result->device->device_name,
             'client_type' => $result->device->client_type,
@@ -108,7 +107,7 @@ class DeviceService
         // The device row is removed by the token's cascade.
         $this->tokenService->revokeById($device->personal_access_token_id);
 
-        event(new DeviceRevoked($user, [
+        event(new AuthAudited('device.revoked', $user, [
             'device_id' => $device->id,
             'device_name' => $device->device_name,
         ]));

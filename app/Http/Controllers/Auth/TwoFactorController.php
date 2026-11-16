@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\ConfirmPasswordRequest;
+use App\Http\Requests\Auth\TwoFactorConfirmRequest;
+use App\Http\Requests\Auth\TwoFactorVerifyRequest;
 use App\Http\Responses\AuthResponse;
 use App\Services\Auth\DeviceService;
 use App\Services\Auth\TokenService;
@@ -25,58 +28,44 @@ class TwoFactorController extends Controller
         );
     }
 
-    public function confirm(Request $request): JsonResponse
+    public function confirm(TwoFactorConfirmRequest $request): JsonResponse
     {
-        $request->validate([
-            'otp' => ['required', 'string', 'regex:/^\d{6}$/'],
-        ]);
-
         return response()->json(
-            $this->twoFactorService->confirmEnrollment($request->user(), $request->input('otp'))
+            $this->twoFactorService->confirmEnrollment($request->user(), $request->validated('otp'))
         );
     }
 
-    public function verify(Request $request): JsonResponse
+    public function verify(TwoFactorVerifyRequest $request): JsonResponse
     {
-        $request->validate([
-            'code' => ['nullable', 'required_without:recovery_code', 'string', 'regex:/^\d{6}$/'],
-            'recovery_code' => ['nullable', 'required_without:code', 'string'],
-            'device_name' => ['required', 'string', 'max:128'],
-        ]);
-
         $user = $request->user();
 
         $this->twoFactorService->verifyForLogin(
             $user,
-            $request->input('code'),
-            $request->input('recovery_code'),
+            $request->validated('code'),
+            $request->validated('recovery_code'),
         );
 
         $this->tokenService->revokeCurrent($user);
 
         return AuthResponse::from($this->deviceService->issueForUser(
             $user,
-            $request->input('device_name'),
+            $request->validated('device_name'),
             $request,
         ));
     }
 
-    public function disable(Request $request): JsonResponse
+    public function disable(ConfirmPasswordRequest $request): JsonResponse
     {
-        $request->validate(['password' => ['required', 'string']]);
-
-        $this->twoFactorService->disable($request->user(), $request->input('password'));
+        $this->twoFactorService->disable($request->user(), $request->validated('password'));
 
         return response()->json(['message' => 'Two-factor authentication disabled.']);
     }
 
-    public function regenerateRecoveryCodes(Request $request): JsonResponse
+    public function regenerateRecoveryCodes(ConfirmPasswordRequest $request): JsonResponse
     {
-        $request->validate(['password' => ['required', 'string']]);
-
         $codes = $this->twoFactorService->regenerateRecoveryCodes(
             $request->user(),
-            $request->input('password'),
+            $request->validated('password'),
         );
 
         return response()->json(['recovery_codes' => $codes]);

@@ -2,8 +2,7 @@
 
 namespace App\Services\Auth;
 
-use App\Events\Auth\TwoFactorDisabled;
-use App\Events\Auth\TwoFactorEnabled;
+use App\Events\Auth\AuthAudited;
 use App\Models\User;
 use App\Repositories\TwoFactorRepository;
 use Illuminate\Support\Facades\DB;
@@ -67,7 +66,7 @@ class TwoFactorService
             return ['recovery_codes' => $this->generateRecoveryCodes($user)];
         });
 
-        event(new TwoFactorEnabled($user));
+        event(new AuthAudited('two_factor.enabled', $user));
 
         return $result;
     }
@@ -120,7 +119,7 @@ class TwoFactorService
 
         $this->tokenService->revokeAllExcept($user, $currentTokenId);
 
-        event(new TwoFactorDisabled($user));
+        event(new AuthAudited('two_factor.disabled', $user));
     }
 
     public function regenerateRecoveryCodes(User $user, string $password): array

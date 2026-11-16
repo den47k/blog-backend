@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\User\SearchUsersRequest;
 use App\Http\Requests\User\UpdateAvatarRequest;
 use App\Http\Requests\User\UpdateProfileRequest;
 use App\Http\Resources\User\UserResource;
@@ -42,15 +43,11 @@ class UserController extends Controller
         return response()->json(['message' => 'Avatar deleted successfully']);
     }
 
-    public function search(Request $request): AnonymousResourceCollection
+    public function search(SearchUsersRequest $request): AnonymousResourceCollection
     {
-        $request->validate([
-            'query' => ['required', 'string', 'min:2'],
-        ]);
-
         $users = $this->userService->searchUsers(
-            $request->input('query'),
-            auth()->id(),
+            $request->validated('query'),
+            $request->user()->id,
         );
 
         return UserResource::collection($users);
