@@ -28,7 +28,7 @@ class RegistrationService
     public function start(string $email, string $password, ?string $ip = null): array
     {
         $user = DB::transaction(function () use ($email, $password) {
-            $existing = $this->userRepository->findByEmailAnyStatus($email);
+            $existing = $this->userRepository->findByEmail($email);
 
             if ($existing && $existing->status === UserStatus::Active) {
                 throw ValidationException::withMessages([

@@ -15,17 +15,10 @@ class Conversation extends Model
         'conversation_type',
         'title',
         'description',
-        'creator_id',
-        'is_public',
         'last_message_id',
     ];
 
     // Relationships
-    public function creator()
-    {
-        return $this->belongsTo(User::class, 'creator_id');
-    }
-
     public function participants()
     {
         return $this->hasMany(Participant::class);

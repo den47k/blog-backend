@@ -8,8 +8,6 @@ use Illuminate\Support\Collection;
 
 interface DeviceRepositoryInterface
 {
-    public function findById(string $id): ?Device;
-
     public function findForUser(User $user, string $id): ?Device;
 
     public function forToken(int $tokenId): ?Device;

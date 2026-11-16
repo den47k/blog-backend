@@ -17,7 +17,6 @@ class ConversationFactory extends Factory
     {
         return [
             'conversation_type' => 'private',
-            'is_public' => false,
         ];
     }
 }

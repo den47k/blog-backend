@@ -23,16 +23,12 @@ class Device extends Model
         'user_agent',
         'last_seen_at',
         'last_seen_ip',
-        'trusted_at',
-        'revoked_at',
     ];
 
     protected function casts(): array
     {
         return [
             'last_seen_at' => 'datetime',
-            'trusted_at' => 'datetime',
-            'revoked_at' => 'datetime',
         ];
     }
 

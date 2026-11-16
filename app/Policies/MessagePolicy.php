@@ -7,11 +7,6 @@ use App\Models\User;
 
 class MessagePolicy
 {
-    public function view(User $user, Message $message): bool
-    {
-        return $message->conversation->participants()->where('user_id', $user->id)->exists();
-    }
-
     public function update(User $user, Message $message): bool
     {
         return $user->id === $message->user_id;

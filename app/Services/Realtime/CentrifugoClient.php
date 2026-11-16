@@ -17,11 +17,6 @@ class CentrifugoClient
         private readonly int $httpTimeout,
     ) {}
 
-    public function publish(string $channel, array $data): void
-    {
-        $this->call('publish', ['channel' => $channel, 'data' => $data]);
-    }
-
     public function broadcast(array $channels, array $data): void
     {
         if (empty($channels)) {

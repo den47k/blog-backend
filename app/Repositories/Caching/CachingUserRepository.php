@@ -31,11 +31,6 @@ class CachingUserRepository implements UserRepositoryInterface
         return $this->inner->findByEmail($email);
     }
 
-    public function findByEmailAnyStatus(string $email): ?User
-    {
-        return $this->inner->findByEmailAnyStatus($email);
-    }
-
     public function findManyByIds(array $ids): Collection
     {
         return $this->inner->findManyByIds($ids);

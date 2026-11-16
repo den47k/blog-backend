@@ -16,16 +16,10 @@ class Participant extends Model
         'user_id',
         'role',
         'joined_at',
-        'last_read_at',
-        'is_muted',
-        'is_banned',
     ];
 
     protected $casts = [
         'joined_at' => 'datetime',
-        'last_read_at' => 'datetime',
-        'is_muted' => 'boolean',
-        'is_banned' => 'boolean',
     ];
 
     // Relationships

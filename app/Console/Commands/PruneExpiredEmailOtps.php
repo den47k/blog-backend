@@ -21,7 +21,7 @@ class PruneExpiredEmailOtps extends Command
                 ->orWhere('consumed_at', '<', $cutoff);
         })->delete();
 
-        $this->info($count === 0 ? 'No expired otps.' : "Pruned {$count} epired email otps.");
+        $this->info($count === 0 ? 'No expired otps.' : "Pruned {$count} expired email otps.");
         return self::SUCCESS;
     }
 }

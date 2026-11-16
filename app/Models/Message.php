@@ -15,12 +15,6 @@ class Message extends Model
         'content',
         'conversation_id',
         'user_id',
-        'parent_id',
-        'is_pinned',
-    ];
-
-    protected $casts = [
-        'is_pinned' => 'boolean',
     ];
 
     // Relationships
@@ -32,16 +26,6 @@ class Message extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function parent()
-    {
-        return $this->belongsTo(Message::class, 'parent_id');
-    }
-
-    public function replies()
-    {
-        return $this->hasMany(Message::class, 'parent_id');
     }
 
     public function attachment()
