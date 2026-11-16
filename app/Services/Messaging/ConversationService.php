@@ -5,20 +5,20 @@ namespace App\Services\Messaging;
 use App\Events\Conversation\ConversationDeletedEvent;
 use App\Models\Conversation;
 use App\Models\User;
-use App\Repositories\Interfaces\ConversationReadRepositoryInterface;
-use App\Repositories\Interfaces\ConversationRepositoryInterface;
-use App\Repositories\Interfaces\ParticipantRepositoryInterface;
-use App\Repositories\Interfaces\UserRepositoryInterface;
+use App\Repositories\ConversationReadRepository;
+use App\Repositories\ConversationRepository;
+use App\Repositories\ParticipantRepository;
+use App\Repositories\UserRepository;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 
 class ConversationService
 {
     public function __construct(
-        private readonly ConversationRepositoryInterface $conversationRepository,
-        private readonly UserRepositoryInterface $userRepository,
-        private readonly ParticipantRepositoryInterface $participantRepository,
-        private readonly ConversationReadRepositoryInterface $readRepository,
+        private readonly ConversationRepository $conversationRepository,
+        private readonly UserRepository $userRepository,
+        private readonly ParticipantRepository $participantRepository,
+        private readonly ConversationReadRepository $readRepository,
         private readonly AttachmentsService $attachmentsService,
     ) {}
 

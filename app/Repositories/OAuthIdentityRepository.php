@@ -1,11 +1,10 @@
 <?php
 
-namespace App\Repositories\Eloquent;
+namespace App\Repositories;
 
 use App\Models\OAuthIdentity;
-use App\Repositories\Interfaces\OAuthIdentityRepositoryInterface;
 
-class OAuthIdentityRepository implements OAuthIdentityRepositoryInterface
+class OAuthIdentityRepository
 {
     public function findByProviderUid(string $provider, string $providerUid): ?OAuthIdentity
     {

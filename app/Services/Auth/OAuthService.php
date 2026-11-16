@@ -10,8 +10,8 @@ use App\Events\Auth\OAuthIdentityUnlinked;
 use App\Models\OAuthIdentity;
 use App\Models\User;
 use App\Notifications\EmailOtpNotification;
-use App\Repositories\Interfaces\OAuthIdentityRepositoryInterface;
-use App\Repositories\Interfaces\UserRepositoryInterface;
+use App\Repositories\OAuthIdentityRepository;
+use App\Repositories\UserRepository;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -35,8 +35,8 @@ class OAuthService
     public const REGISTER_TTL_MINUTES = 30;
 
     public function __construct(
-        private readonly OAuthIdentityRepositoryInterface $identityRepository,
-        private readonly UserRepositoryInterface $userRepository,
+        private readonly OAuthIdentityRepository $identityRepository,
+        private readonly UserRepository $userRepository,
         private readonly OtpService $otpService,
         private readonly TokenService $tokenService,
     ) {}

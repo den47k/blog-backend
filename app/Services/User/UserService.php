@@ -3,14 +3,14 @@
 namespace App\Services\User;
 
 use App\Models\User;
-use App\Repositories\Interfaces\UserRepositoryInterface;
+use App\Repositories\UserRepository;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 
 class UserService
 {
     public function __construct(
-        private readonly UserRepositoryInterface $userRepository,
+        private readonly UserRepository $userRepository,
         private readonly AvatarService $avatarService,
     ) {}
 

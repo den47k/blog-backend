@@ -1,13 +1,12 @@
 <?php
 
-namespace App\Repositories\Eloquent;
+namespace App\Repositories;
 
 use App\Models\Device;
 use App\Models\User;
-use App\Repositories\Interfaces\DeviceRepositoryInterface;
 use Illuminate\Support\Collection;
 
-class DeviceRepository implements DeviceRepositoryInterface
+class DeviceRepository
 {
     public function findForUser(User $user, string $id): ?Device
     {

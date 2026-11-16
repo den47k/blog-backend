@@ -1,13 +1,12 @@
 <?php
 
-namespace App\Repositories\Eloquent;
+namespace App\Repositories;
 
 use App\Models\Conversation;
 use App\Models\Message;
-use App\Repositories\Interfaces\MessageRepositoryInterface;
 use Illuminate\Contracts\Pagination\CursorPaginator;
 
-class MessageRepository implements MessageRepositoryInterface
+class MessageRepository
 {
     public function getPaginated(Conversation $conversation, int $perPage = 30): CursorPaginator
     {

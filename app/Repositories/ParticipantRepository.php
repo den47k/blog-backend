@@ -1,14 +1,13 @@
 <?php
 
-namespace App\Repositories\Eloquent;
+namespace App\Repositories;
 
 use App\Models\Conversation;
 use App\Models\Participant;
 use App\Models\User;
-use App\Repositories\Interfaces\ParticipantRepositoryInterface;
 use Illuminate\Support\Collection;
 
-class ParticipantRepository implements ParticipantRepositoryInterface
+class ParticipantRepository
 {
     public function add(Conversation $conversation, User $user, ?string $joinedAt = null, string $role = 'member'): Participant
     {

@@ -10,20 +10,20 @@ use App\Http\Resources\Message\MessageResource;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
-use App\Repositories\Interfaces\ConversationReadRepositoryInterface;
-use App\Repositories\Interfaces\ConversationRepositoryInterface;
-use App\Repositories\Interfaces\MessageRepositoryInterface;
-use App\Repositories\Interfaces\ParticipantRepositoryInterface;
+use App\Repositories\ConversationReadRepository;
+use App\Repositories\ConversationRepository;
+use App\Repositories\MessageRepository;
+use App\Repositories\ParticipantRepository;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class MessageService
 {
     public function __construct(
-        private readonly MessageRepositoryInterface $messageRepository,
-        private readonly ConversationRepositoryInterface $conversationRepository,
-        private readonly ParticipantRepositoryInterface $participantRepository,
-        private readonly ConversationReadRepositoryInterface $readRepository,
+        private readonly MessageRepository $messageRepository,
+        private readonly ConversationRepository $conversationRepository,
+        private readonly ParticipantRepository $participantRepository,
+        private readonly ConversationReadRepository $readRepository,
         private readonly AttachmentsService $attachmentsService,
         private readonly ConversationService $conversationService,
     ) {

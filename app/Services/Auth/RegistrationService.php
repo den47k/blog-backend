@@ -7,7 +7,7 @@ use App\Enums\TokenAbility;
 use App\Enums\UserStatus;
 use App\Models\User;
 use App\Notifications\EmailOtpNotification;
-use App\Repositories\Interfaces\UserRepositoryInterface;
+use App\Repositories\UserRepository;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +20,7 @@ class RegistrationService
     public const REGISTER_TOKEN_TTL_MINUTES = 30;
 
     public function __construct(
-        private readonly UserRepositoryInterface $userRepository,
+        private readonly UserRepository $userRepository,
         private readonly OtpService $otpService,
         private readonly TokenService $tokenService,
     ) {}

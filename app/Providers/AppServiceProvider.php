@@ -13,20 +13,6 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Policies\ConversationPolicy;
 use App\Policies\MessagePolicy;
-use App\Repositories\Eloquent\ConversationRepository;
-use App\Repositories\Eloquent\DeviceRepository;
-use App\Repositories\Eloquent\MessageRepository;
-use App\Repositories\Eloquent\OAuthIdentityRepository;
-use App\Repositories\Eloquent\ParticipantRepository;
-use App\Repositories\Eloquent\UserRepository;
-use App\Repositories\Interfaces\ConversationReadRepositoryInterface;
-use App\Repositories\Interfaces\ConversationRepositoryInterface;
-use App\Repositories\Interfaces\DeviceRepositoryInterface;
-use App\Repositories\Interfaces\MessageRepositoryInterface;
-use App\Repositories\Interfaces\OAuthIdentityRepositoryInterface;
-use App\Repositories\Interfaces\ParticipantRepositoryInterface;
-use App\Repositories\Interfaces\UserRepositoryInterface;
-use App\Repositories\Redis\ConversationReadRepository;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -43,14 +29,6 @@ class AppServiceProvider extends ServiceProvider
             $this->app->register(\Laravel\Telescope\TelescopeServiceProvider::class);
             $this->app->register(TelescopeServiceProvider::class);
         }
-
-        $this->app->bind(UserRepositoryInterface::class, UserRepository::class);
-        $this->app->bind(ConversationRepositoryInterface::class, ConversationRepository::class);
-        $this->app->bind(MessageRepositoryInterface::class, MessageRepository::class);
-        $this->app->bind(ParticipantRepositoryInterface::class, ParticipantRepository::class);
-        $this->app->bind(ConversationReadRepositoryInterface::class, ConversationReadRepository::class);
-        $this->app->bind(DeviceRepositoryInterface::class, DeviceRepository::class);
-        $this->app->bind(OAuthIdentityRepositoryInterface::class, OAuthIdentityRepository::class);
     }
 
     public function boot(): void

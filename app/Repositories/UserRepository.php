@@ -1,13 +1,12 @@
 <?php
 
-namespace App\Repositories\Eloquent;
+namespace App\Repositories;
 
 use App\Enums\UserStatus;
 use App\Models\User;
-use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Support\Collection;
 
-class UserRepository implements UserRepositoryInterface
+class UserRepository
 {
     public function findOrFail(string $id): User
     {

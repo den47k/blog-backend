@@ -7,7 +7,7 @@ use App\Events\Auth\DeviceRegistered;
 use App\Events\Auth\DeviceRevoked;
 use App\Models\Device;
 use App\Models\User;
-use App\Repositories\Interfaces\DeviceRepositoryInterface;
+use App\Repositories\DeviceRepository;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -22,7 +22,7 @@ class DeviceService
     public const TWO_FACTOR_CHALLENGE_TTL_MINUTES = 5;
 
     public function __construct(
-        private readonly DeviceRepositoryInterface $deviceRepository,
+        private readonly DeviceRepository $deviceRepository,
         private readonly TokenService $tokenService,
     ) {}
 
