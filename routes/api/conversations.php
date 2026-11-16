@@ -13,6 +13,9 @@ Route::prefix('conversations')->group(function () {
 
     Route::get('/{conversation:id}/messages', [MessageController::class, 'index'])->name('conversation.messages.index');
     Route::post('/{conversation:id}/messages', [MessageController::class, 'store'])->name('conversation.messages.store');
-    Route::patch('/{conversation:id}/messages/{message:id}', [MessageController::class, 'update'])->name('conversation.messages.update');
-    Route::delete('/{conversation:id}/messages/{message:id}', [MessageController::class, 'delete'])->name('conversation.messages.delete');
+
+    Route::scopeBindings()->group(function () {
+        Route::patch('/{conversation:id}/messages/{message:id}', [MessageController::class, 'update'])->name('conversation.messages.update');
+        Route::delete('/{conversation:id}/messages/{message:id}', [MessageController::class, 'delete'])->name('conversation.messages.delete');
+    });
 });

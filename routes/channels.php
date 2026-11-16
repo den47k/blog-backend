@@ -3,15 +3,15 @@
 use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Str;
 
 Broadcast::channel(
     'user.{userId}',
-    fn (User $user, $userId) => (int) $user->id === (int) $userId,
+    fn (User $user, string $userId) => $user->id === $userId,
 );
 
-Broadcast::channel(
-    'conversation.{conversationId}',
-    fn ($user, $conversationId) => Conversation::where('id', $conversationId)
-        ->whereHas('participants', fn ($q) => $q->where('user_id', $user->id))
-        ->exists(),
-);
+Broadcast::channel('conversation.{conversationId}', function (User $user, string $conversationId) {
+    $conversation = Str::isUuid($conversationId) ? Conversation::find($conversationId) : null;
+
+    return $conversation !== null && $user->can('view', $conversation);
+});

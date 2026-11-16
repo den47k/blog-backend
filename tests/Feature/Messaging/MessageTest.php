@@ -419,4 +419,33 @@ class MessageTest extends TestCase
         $this->assertDatabaseHas('messages', ['id' => $message->id]);
         $this->assertSame($message->id, $this->conversation->fresh()->last_message_id);
     }
+
+    // ------------------------------------------------------------- scoping
+
+    public function test_a_message_cannot_be_reached_through_another_conversation(): void
+    {
+        $message = $this->message($this->conversation, $this->author);
+        $other = $this->privateConversation($this->author, User::factory()->create());
+        $otherLast = $this->message($other, $this->author);
+        $url = "/api/conversations/{$other->id}/messages/{$message->id}";
+
+        $this->actingAsUser($this->author);
+        $this->patchJson($url, ['content' => 'moved'])->assertNotFound();
+        $this->deleteJson($url)->assertNotFound();
+
+        $this->assertDatabaseHas('messages', ['id' => $message->id]);
+        $this->assertSame($otherLast->id, $other->fresh()->last_message_id);
+    }
+
+    public function test_author_who_left_the_conversation_cannot_update_or_delete_a_message(): void
+    {
+        $message = $this->message($this->conversation, $this->author);
+        $this->conversation->participants()->where('user_id', $this->author->id)->delete();
+
+        $this->actingAsUser($this->author);
+        $this->patchJson($this->messagesUrl($message), ['content' => 'still here'])->assertForbidden();
+        $this->deleteJson($this->messagesUrl($message))->assertForbidden();
+
+        $this->assertDatabaseHas('messages', ['id' => $message->id]);
+    }
 }
