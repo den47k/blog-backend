@@ -164,7 +164,7 @@ class BroadcastTest extends TestCase
         // Rendered from the recipient's point of view: the "other" side is the author.
         $this->assertSame($this->author->tag, $payload['userTag']);
         $this->assertSame($this->author->name, $payload['title']);
-        $this->assertIsBool($payload['hasUnread']);
+        $this->assertTrue($payload['hasUnread']);
         $this->assertSame($messageId, $payload['lastMessage']['id']);
         $this->assertSame('first!', $payload['lastMessage']['content']);
         $this->assertIsoDateTime($payload['createdAt']);

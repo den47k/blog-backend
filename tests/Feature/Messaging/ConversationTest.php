@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Messaging;
 
+use App\Http\Resources\Conversation\ConversationResource;
 use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -162,6 +163,23 @@ class ConversationTest extends TestCase
         $this->actingAsUser(User::factory()->create())
             ->postJson("/api/conversations/{$conversation->id}/mark-as-read")
             ->assertForbidden();
+    }
+
+    public function test_resource_renders_for_an_explicit_viewer_without_an_authenticated_user(): void
+    {
+        $viewer = User::factory()->create();
+        $other = User::factory()->create();
+        $conversation = $this->privateConversation($viewer, $other);
+
+        $this->assertGuest();
+
+        $forViewer = (new ConversationResource($conversation, $viewer))->resolve();
+        $this->assertSame($other->tag, $forViewer['userTag']);
+        $this->assertFalse($forViewer['hasUnread']);
+
+        $forOther = (new ConversationResource($conversation, $other, hasUnread: true))->resolve();
+        $this->assertSame($viewer->tag, $forOther['userTag']);
+        $this->assertTrue($forOther['hasUnread']);
     }
 
     // ----------------------------------------------------------- show by tag

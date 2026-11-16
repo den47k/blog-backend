@@ -44,7 +44,7 @@ class MessageController extends Controller
             'message' => 'Message sent successfully',
             'data' => [
                 'message' => new MessageResource($message->loadMissing(['user', 'attachment'])),
-                'conversation' => new ConversationResource($conversation),
+                'conversation' => new ConversationResource($conversation, $request->user(), hasUnread: false),
             ],
         ], 201);
     }

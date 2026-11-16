@@ -23,7 +23,7 @@ class ConversationController extends Controller
         $user = $request->user();
         $conversations = $this->conversationService->getConversationsForUser($user);
 
-        return ConversationResource::collection($conversations);
+        return ConversationResource::collectionFor($conversations, $user);
     }
 
     public function show(Request $request, string $tag): ConversationResource
@@ -32,7 +32,7 @@ class ConversationController extends Controller
         $conversation = $this->conversationService->getPrivateConversation($user, $tag);
         Gate::authorize('view', $conversation);
 
-        return new ConversationResource($conversation);
+        return new ConversationResource($conversation, $user);
     }
 
     public function createPrivateConversation(CreatePrivateConversationRequest $request): JsonResponse
@@ -45,7 +45,7 @@ class ConversationController extends Controller
 
         return response()->json([
             'message' => 'Conversation created successfully',
-            'conversation' => new ConversationResource($conversation),
+            'conversation' => new ConversationResource($conversation, $request->user()),
         ], 201);
     }
 

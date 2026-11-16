@@ -34,7 +34,8 @@ class ConversationCreatedEvent implements ShouldBroadcastNow, ShouldDispatchAfte
     public function broadcastWith()
     {
         return [
-            'conversation' => ConversationResource::forUser($this->conversation, $this->recipient)->resolve(),
+            // Sent to the recipient together with the first message, which they have not seen yet.
+            'conversation' => (new ConversationResource($this->conversation, $this->recipient, hasUnread: true))->resolve(),
         ];
     }
 
