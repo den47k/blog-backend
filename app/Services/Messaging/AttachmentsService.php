@@ -30,7 +30,7 @@ class AttachmentsService
         $path = "attachments/{$conversationId}/{$messageId}";
         $fileName = $file->hashName();
 
-        $filePath = $this->disk->putFileAs($path, $file, $fileName, 'public');
+        $filePath = $this->disk->putFileAs($path, $file, $fileName);
 
         $fileData = [
             'original' => $filePath,
@@ -89,7 +89,7 @@ class AttachmentsService
                 ->resize(300, 300)
                 ->toJpeg();
             $thumbPath = "{$path}/thumb_".$file->hashName().'.jpg';
-            $this->disk->put($thumbPath, $thumbnail->toString(), 'public');
+            $this->disk->put($thumbPath, $thumbnail->toString());
 
             return $thumbPath;
         } catch (\Exception $e) {

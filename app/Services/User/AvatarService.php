@@ -24,10 +24,7 @@ class AvatarService
     {
         $path = "avatars/{$userId}";
 
-        $originalPath = $this->disk->putFile($path, $file, [
-            'visibility' => 'public',
-            'name' => 'original.'.$file->extension(),
-        ]);
+        $originalPath = $this->disk->putFile($path, $file);
 
         $medium = $this->imageManager->read($file->getRealPath())
             ->resize(300, 300)
