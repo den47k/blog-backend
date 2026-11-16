@@ -24,18 +24,15 @@ class AvatarService
     {
         $path = "avatars/{$userId}";
 
-        $originalPath = $this->disk->putFile($path, $file, [
-            'visibility' => 'public',
-            'name' => 'original.'.$file->extension(),
-        ]);
+        $originalPath = $this->disk->putFile($path, $file);
 
         $medium = $this->imageManager->read($file->getRealPath())
-            ->resize(300, 300)
+            ->cover(300, 300)
             ->toJpeg();
         $this->disk->put("{$path}/medium.jpg", $medium->toString());
 
         $small = $this->imageManager->read($file->getRealPath())
-            ->resize(100, 100)
+            ->cover(100, 100)
             ->toJpeg();
         $this->disk->put("{$path}/small.jpg", $small->toString());
 

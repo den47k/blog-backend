@@ -163,6 +163,55 @@ class OAuthTest extends TestCase
         $this->assertSame(0, $user->devices()->count());
     }
 
+    public function test_callback_resumes_the_profile_step_for_a_user_who_never_finished_it(): void
+    {
+        $user = User::factory()->pendingProfile()->create();
+        $this->identityFor($user);
+        $this->fakeProviderUser('github', 'gh-1', $user->email);
+        $this->storeState('github');
+
+        $this->oauthCallback('github')
+            ->assertOk()
+            ->assertJsonStructure(self::PENDING_KEYS)
+            ->assertJsonMissingPath('token')
+            ->assertJsonPath('status', 'pending_profile');
+
+        $this->assertSame([TokenAbility::RegisterPending->value], $user->tokens()->sole()->abilities);
+        $this->assertSame(0, $user->devices()->count());
+    }
+
+    public function test_callback_resumes_the_email_step_for_a_user_who_never_verified(): void
+    {
+        $user = User::factory()->pendingEmail()->create();
+        $this->identityFor($user);
+        $this->fakeProviderUser('github', 'gh-1', $user->email);
+        $this->storeState('github');
+
+        $this->oauthCallback('github')
+            ->assertOk()
+            ->assertJsonStructure(self::PENDING_KEYS)
+            ->assertJsonMissingPath('token')
+            ->assertJsonPath('status', 'pending_email');
+
+        $this->assertSame([TokenAbility::RegisterPending->value], $user->tokens()->sole()->abilities);
+        Notification::assertSentTo($user, EmailOtpNotification::class);
+    }
+
+    public function test_callback_does_not_log_in_an_auto_linked_user_with_an_unfinished_profile(): void
+    {
+        $user = User::factory()->pendingProfile()->create();
+        $this->fakeProviderUser('google', 'g-1', $user->email, ['email_verified' => true]);
+        $this->storeState('google');
+
+        $this->oauthCallback('google')
+            ->assertOk()
+            ->assertJsonStructure(self::PENDING_KEYS)
+            ->assertJsonMissingPath('token')
+            ->assertJsonPath('status', 'pending_profile');
+
+        $this->assertDatabaseHas('oauth_identities', ['user_id' => $user->id, 'provider' => 'google']);
+    }
+
     public function test_callback_with_a_verified_new_email_starts_at_the_profile_step(): void
     {
         $this->fakeProviderUser('github', 'gh-new', 'fresh@example.com');
@@ -343,6 +392,38 @@ class OAuthTest extends TestCase
         $this->assertDatabaseCount('oauth_identities', 0);
     }
 
+    public function test_the_last_identity_can_be_unlinked_by_a_user_who_registered_with_a_password(): void
+    {
+        $this->postJson('/api/auth/register/start', [
+            'email' => 'fresh@example.com',
+            'password' => 'Str0ng-passw0rd!',
+            'password_confirmation' => 'Str0ng-passw0rd!',
+        ])->assertCreated();
+
+        $user = User::where('email', 'fresh@example.com')->firstOrFail();
+        $user->update(['name' => 'Fresh', 'tag' => 'fresh_user', 'status' => UserStatus::Active]);
+        $identity = $this->identityFor($user);
+
+        $this->withBearer($this->tokenFor($user))
+            ->deleteJson("/api/auth/oauth/identities/{$identity->id}")
+            ->assertNoContent();
+    }
+
+    public function test_the_last_identity_cannot_be_unlinked_by_a_user_created_through_oauth(): void
+    {
+        $this->fakeProviderUser('github', 'gh-new', 'fresh@example.com');
+        $this->storeState('github');
+        $this->oauthCallback('github')->assertOk();
+
+        $user = User::where('email', 'fresh@example.com')->firstOrFail();
+        $user->update(['name' => 'Fresh', 'tag' => 'fresh_user', 'status' => UserStatus::Active]);
+
+        $this->withBearer($this->tokenFor($user))
+            ->deleteJson("/api/auth/oauth/identities/{$user->oauthIdentities()->sole()->id}")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['identity']);
+    }
+
     public function test_the_last_identity_cannot_be_unlinked_without_a_password_change_on_record(): void
     {
         $user = User::factory()->create();
@@ -366,5 +447,12 @@ class OAuthTest extends TestCase
             ->assertNotFound();
 
         $this->assertDatabaseHas('oauth_identities', ['id' => $foreign->id]);
+    }
+
+    public function test_a_malformed_identity_id_is_not_found(): void
+    {
+        $this->withBearer($this->tokenFor(User::factory()->create()))
+            ->deleteJson('/api/auth/oauth/identities/123')
+            ->assertNotFound();
     }
 }

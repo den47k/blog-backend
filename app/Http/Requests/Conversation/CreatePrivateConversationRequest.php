@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Conversation;
 
+use App\Enums\UserStatus;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class CreatePrivateConversationRequest extends FormRequest
 {
@@ -14,8 +16,20 @@ class CreatePrivateConversationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => ['required', 'string', 'exists:users,id'],
-            'should_join_now' => ['nullable', 'boolean'],
+            'user_id' => [
+                'required',
+                'uuid',
+                Rule::notIn([$this->user()->id]),
+                Rule::exists('users', 'id')->where('status', UserStatus::Active->value),
+            ],
+            'should_join_now' => ['sometimes', 'boolean'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'user_id.not_in' => 'You cannot start a conversation with yourself.',
         ];
     }
 }

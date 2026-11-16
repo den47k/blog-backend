@@ -15,6 +15,7 @@ use App\Repositories\Interfaces\ConversationRepositoryInterface;
 use App\Repositories\Interfaces\MessageRepositoryInterface;
 use App\Repositories\Interfaces\ParticipantRepositoryInterface;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class MessageService
 {
@@ -35,41 +36,58 @@ class MessageService
 
     public function storeMessage(Conversation $conversation, User $user, array $data): Message
     {
-        return DB::transaction(function () use ($conversation, $user, $data) {
-            Conversation::whereKey($conversation->id)->lockForUpdate()->first();
+        // The id is generated up front so the file can be uploaded to its final
+        // path before the transaction: the upload must not run under the row lock.
+        $messageId = (new Message)->newUniqueId();
+        $fileData = isset($data['attachment'])
+            ? $this->attachmentsService->upload($conversation->id, $messageId, $data['attachment'])
+            : null;
 
-            $message = $this->messageRepository->create($conversation, $user->id, $data['content'] ?? null);
+        try {
+            $message = DB::transaction(function () use ($conversation, $user, $data, $messageId, $fileData) {
+                Conversation::whereKey($conversation->id)->lockForUpdate()->first();
 
-            if (isset($data['attachment'])) {
-                $this->attachmentsService->storeForMessage($message, $data['attachment']);
-            }
+                $message = $this->messageRepository->create($conversation, $user->id, $data['content'] ?? null, $messageId);
 
-            $this->conversationRepository->updateLastMessage($conversation, $message->id);
-            $conversation->setRelation('lastMessage', $message);
+                if ($fileData !== null) {
+                    $message->attachment()->create(['file_data' => $fileData]);
+                }
 
-            $conversation->loadMissing('participants.user');
-            $participants = $conversation->participants;
-            $participant = $participants->firstWhere('user_id', $user->id);
-            $recipients = $participants->where('user_id', '!=', $user->id)->pluck('user');
+                $this->conversationRepository->updateLastMessage($conversation, $message->id);
+                $conversation->setRelation('lastMessage', $message);
 
-            if (is_null($participant->joined_at)) {
-                $this->participantRepository->markUnjoinedAsJoined($conversation);
+                $conversation->loadMissing('participants.user');
+                $participants = $conversation->participants;
+                $participant = $participants->firstWhere('user_id', $user->id);
+                $recipients = $participants->where('user_id', '!=', $user->id)->pluck('user');
 
-                if ($recipients->isNotEmpty()) {
-                    $conversation->load(['participants.user', 'lastMessage']);
+                if (is_null($participant->joined_at)) {
+                    $this->participantRepository->markUnjoinedAsJoined($conversation);
 
-                    foreach ($recipients as $recipient) {
-                        event(new ConversationCreatedEvent($conversation, $recipient));
+                    if ($recipients->isNotEmpty()) {
+                        $conversation->load(['participants.user', 'lastMessage']);
+
+                        foreach ($recipients as $recipient) {
+                            event(new ConversationCreatedEvent($conversation, $recipient));
+                        }
                     }
                 }
+
+                broadcast(new MessageCreatedEvent($message->load('user', 'attachment'), $recipients->all()))->toOthers();
+
+                return $message;
+            });
+        } catch (Throwable $e) {
+            if ($fileData !== null) {
+                $this->attachmentsService->deletePaths($fileData);
             }
 
-            $this->readRepository->markAsRead($conversation, $user);
+            throw $e;
+        }
 
-            broadcast(new MessageCreatedEvent($message->load('user', 'attachment'), $recipients->all()))->toOthers();
+        $this->readRepository->markAsRead($conversation, $user);
 
-            return $message;
-        });
+        return $message;
     }
 
     public function updateMessage(Message $message, array $data)
@@ -90,7 +108,9 @@ class MessageService
 
     public function deleteMessage(Conversation $conversation, Message $message)
     {
-        return DB::transaction(function () use ($conversation, $message) {
+        $attachment = $message->attachment;
+
+        $result = DB::transaction(function () use ($conversation, $message) {
             Conversation::whereKey($conversation->id)->lockForUpdate()->first();
             $conversation->refresh();
 
@@ -102,10 +122,6 @@ class MessageService
                 $newLastMessage = $this->messageRepository->findLatestExcluding($conversation, $message->id);
 
                 $this->conversationRepository->updateLastMessage($conversation, $newLastMessage?->id);
-            }
-
-            if ($message->attachment) {
-                $this->attachmentsService->deleteFile($message->attachment);
             }
 
             $this->messageRepository->delete($message);
@@ -138,5 +154,11 @@ class MessageService
                     : null,
             ];
         });
+
+        if ($attachment) {
+            $this->attachmentsService->deleteFile($attachment);
+        }
+
+        return $result;
     }
 }

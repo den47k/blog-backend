@@ -40,6 +40,43 @@ class UserSearchTest extends TestCase
             ->assertJsonPath('data.0.avatar', null);
     }
 
+    public function test_search_skips_users_who_have_not_finished_registration(): void
+    {
+        $active = User::factory()->create(['name' => 'Alice Wonder']);
+        User::factory()->pendingProfile()->create(['name' => 'Alice Pending']);
+        User::factory()->pendingEmail()->create(['name' => 'Alice Unverified']);
+
+        $this->actingAsUser(User::factory()->create(['name' => 'Searcher', 'tag' => 'searcher']))
+            ->getJson('/api/users/search?query=alice')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $active->id);
+    }
+
+    public function test_search_treats_like_wildcards_literally(): void
+    {
+        $underscore = User::factory()->create(['name' => 'Bob', 'tag' => 'bob_builder']);
+        User::factory()->create(['name' => 'Bobby', 'tag' => 'bobXbuilder']);
+        $percent = User::factory()->create(['name' => '100% Carol', 'tag' => 'carol_one']);
+        User::factory()->create(['name' => '100 Carols', 'tag' => 'carol_two']);
+
+        $this->actingAsUser(User::factory()->create(['name' => 'Searcher', 'tag' => 'searcher']));
+
+        $this->getJson('/api/users/search?query='.urlencode('bob_b'))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $underscore->id);
+
+        $this->getJson('/api/users/search?query='.urlencode('0%'))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $percent->id);
+
+        $this->getJson('/api/users/search?query='.urlencode('%%'))
+            ->assertOk()
+            ->assertExactJson(['data' => []]);
+    }
+
     public function test_search_returns_an_empty_list_when_nothing_matches(): void
     {
         User::factory()->create(['name' => 'Alice Wonder', 'tag' => 'alice_one']);

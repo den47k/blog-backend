@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Eloquent;
 
+use App\Enums\UserStatus;
 use App\Models\User;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Support\Collection;
@@ -49,10 +50,13 @@ class UserRepository implements UserRepositoryInterface
 
     public function search(string $query, string $excludeUserId, int $limit = 10): Collection
     {
+        $pattern = '%'.addcslashes($query, '%_\\').'%';
+
         return User::where('id', '!=', $excludeUserId)
-            ->where(function ($q) use ($query) {
-                $q->where('name', 'ILIKE', "%{$query}%")
-                    ->orWhere('tag', 'ILIKE', "%{$query}%");
+            ->where('status', UserStatus::Active)
+            ->where(function ($q) use ($pattern) {
+                $q->where('name', 'ILIKE', $pattern)
+                    ->orWhere('tag', 'ILIKE', $pattern);
             })
             ->limit($limit)
             ->get();

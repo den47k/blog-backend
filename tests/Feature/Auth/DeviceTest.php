@@ -93,6 +93,14 @@ class DeviceTest extends TestCase
         $this->assertDatabaseHas('devices', ['id' => $foreign->id, 'device_name' => 'Theirs']);
     }
 
+    public function test_a_malformed_device_id_is_not_found(): void
+    {
+        $this->withBearer($this->login(User::factory()->create())['token']);
+
+        $this->patchJson('/api/auth/devices/123', ['device_name' => 'Nope'])->assertNotFound();
+        $this->deleteJson('/api/auth/devices/123')->assertNotFound();
+    }
+
     public function test_devices_require_authentication(): void
     {
         $this->getJson('/api/auth/devices')->assertUnauthorized();

@@ -105,5 +105,16 @@ class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinutes(15, 10)->by('2fa:' . $tokenId);
         });
+
+        RateLimiter::for('auth-oauth', fn (Request $request) => Limit::perMinute(20)->by('oauth:' . $request->ip()));
+
+        RateLimiter::for('auth-password-confirm', fn (Request $request) => Limit::perMinute(5)
+            ->by('password-confirm:' . ($request->user()?->id ?? $request->ip())));
+
+        RateLimiter::for('messages', fn (Request $request) => Limit::perMinute(60)
+            ->by('messages:' . ($request->user()?->id ?? $request->ip())));
+
+        RateLimiter::for('search', fn (Request $request) => Limit::perMinute(30)
+            ->by('search:' . ($request->user()?->id ?? $request->ip())));
     }
 }

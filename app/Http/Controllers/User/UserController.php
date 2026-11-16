@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\User\UpdateAvatarRequest;
+use App\Http\Requests\User\UpdateProfileRequest;
 use App\Http\Resources\User\UserResource;
 use App\Models\User;
 use App\Services\User\UserService;
@@ -17,22 +19,18 @@ class UserController extends Controller
         private readonly UserService $userService,
     ) {}
 
-    public function update(Request $request, User $user): JsonResponse
+    public function update(UpdateProfileRequest $request, User $user): JsonResponse
     {
-        Gate::authorize('update', $user);
-
-        $request->validate([
-            'name' => ['string', 'min:3', 'max:32'],
-            'avatar' => ['image', 'max:5000'],
-        ]);
-
-        $response = $this->userService->updateProfile(
-            $user,
-            $request->has('name') ? $request->input('name') : null,
-            $request->file('avatar'),
+        return response()->json(
+            $this->userService->updateProfile($user, $request->validated('name'), null)
         );
+    }
 
-        return response()->json($response);
+    public function updateAvatar(UpdateAvatarRequest $request, User $user): JsonResponse
+    {
+        return response()->json(
+            $this->userService->updateProfile($user, null, $request->file('avatar'))
+        );
     }
 
     public function deleteAvatar(Request $request, User $user): JsonResponse

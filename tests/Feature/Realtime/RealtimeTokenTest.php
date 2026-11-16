@@ -60,10 +60,6 @@ class RealtimeTokenTest extends TestCase
 
     public function test_user_cannot_subscribe_to_another_users_channel(): void
     {
-        // routes/channels.php compares (int) casts of two UUIDs, which are
-        // equal for practically every pair of ids, so this returns 200 today.
-        $this->markTestIncomplete('Known bug, docs/AUDIT.md P27: fixed in Phase 2.2.');
-
         $user = User::factory()->create();
         $other = User::factory()->create();
 
@@ -107,6 +103,13 @@ class RealtimeTokenTest extends TestCase
             ->postJson('/api/realtime/subscribe', ['channel' => "conv:{$conversation->id}"])
             ->assertForbidden()
             ->assertExactJson(['message' => 'Forbidden.']);
+    }
+
+    public function test_a_malformed_conversation_channel_is_rejected(): void
+    {
+        $this->actingAsUser(User::factory()->create())
+            ->postJson('/api/realtime/subscribe', ['channel' => 'conv:123'])
+            ->assertForbidden();
     }
 
     public function test_unknown_namespaces_are_rejected(): void

@@ -13,7 +13,6 @@ use App\Support\Cache\CacheHelper;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use InvalidArgumentException;
 
 class ConversationService
 {
@@ -22,6 +21,7 @@ class ConversationService
         private readonly UserRepositoryInterface $userRepository,
         private readonly ParticipantRepositoryInterface $participantRepository,
         private readonly ConversationReadRepositoryInterface $readRepository,
+        private readonly AttachmentsService $attachmentsService,
     ) {}
 
     public function getConversationsForUser(User $user, int $perPage = 20)
@@ -41,24 +41,20 @@ class ConversationService
         return $conversation;
     }
 
-    public function createPrivateConversation(User $initiator, string $recipientId, bool $should_join_now): Conversation
+    public function createPrivateConversation(User $initiator, string $recipientId, bool $joinNow): Conversation
     {
         $other = $this->userRepository->findOrFail($recipientId);
 
-        if ($initiator->id === $other->id) {
-            throw new InvalidArgumentException('Cannot create conversation with yourself');
-        }
-
-        return DB::transaction(function () use ($initiator, $other, $should_join_now) {
+        return DB::transaction(function () use ($initiator, $other, $joinNow) {
             $existingConversation = $this->conversationRepository->findExistingPrivate($initiator, $other);
 
             if ($existingConversation) {
-                if ($should_join_now) {
+                if ($joinNow) {
                     $participant = $this->participantRepository->find($existingConversation, $initiator->id);
 
                     if ($participant && ! $participant->joined_at) {
                         $participant->update(['joined_at' => now()]);
-                        Cache::forget(CacheHelper::userConversations($initiator->id));
+                        DB::afterCommit(fn () => Cache::forget(CacheHelper::userConversations($initiator->id)));
                     }
                 }
 
@@ -69,11 +65,11 @@ class ConversationService
                 'conversation_type' => 'private',
             ]);
 
-            $this->participantRepository->add($conversation, $initiator, $should_join_now ? now() : null);
+            $this->participantRepository->add($conversation, $initiator, $joinNow ? now() : null);
             $this->participantRepository->add($conversation, $other, null);
 
-            if ($should_join_now) {
-                Cache::forget(CacheHelper::userConversations($initiator->id));
+            if ($joinNow) {
+                DB::afterCommit(fn () => Cache::forget(CacheHelper::userConversations($initiator->id)));
             }
 
             return $conversation;
@@ -96,6 +92,8 @@ class ConversationService
             $recipients = $this->userRepository->findManyByIds($joinedOtherIds);
             broadcast(new ConversationDeletedEvent($conversationId, $recipients->all(), $affectedUserIds));
         });
+
+        $this->attachmentsService->deleteForConversation($conversation->id);
     }
 
     public function markConversationAsRead(Conversation $conversation, User $user): void
