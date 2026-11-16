@@ -1,5 +1,4 @@
 {
-    "allowed_origins": ["*"],
     "health": true,
     "engine": "redis",
     "redis_address": "redis://redis:6379/3",
