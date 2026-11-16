@@ -227,6 +227,8 @@ class OAuthService
             ->where('id', '!=', $identityId)
             ->count();
 
+        // password_changed_at is only set when the user chose a password themselves;
+        // accounts created through OAuth hold a random one nobody knows.
         if ($remaining === 0 && ! $user->password_changed_at) {
             throw ValidationException::withMessages([
                 'identity' => ['Cannot unlink last auth method without setting a password first.'],

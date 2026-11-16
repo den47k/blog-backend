@@ -392,6 +392,38 @@ class OAuthTest extends TestCase
         $this->assertDatabaseCount('oauth_identities', 0);
     }
 
+    public function test_the_last_identity_can_be_unlinked_by_a_user_who_registered_with_a_password(): void
+    {
+        $this->postJson('/api/auth/register/start', [
+            'email' => 'fresh@example.com',
+            'password' => 'Str0ng-passw0rd!',
+            'password_confirmation' => 'Str0ng-passw0rd!',
+        ])->assertCreated();
+
+        $user = User::where('email', 'fresh@example.com')->firstOrFail();
+        $user->update(['name' => 'Fresh', 'tag' => 'fresh_user', 'status' => UserStatus::Active]);
+        $identity = $this->identityFor($user);
+
+        $this->withBearer($this->tokenFor($user))
+            ->deleteJson("/api/auth/oauth/identities/{$identity->id}")
+            ->assertNoContent();
+    }
+
+    public function test_the_last_identity_cannot_be_unlinked_by_a_user_created_through_oauth(): void
+    {
+        $this->fakeProviderUser('github', 'gh-new', 'fresh@example.com');
+        $this->storeState('github');
+        $this->oauthCallback('github')->assertOk();
+
+        $user = User::where('email', 'fresh@example.com')->firstOrFail();
+        $user->update(['name' => 'Fresh', 'tag' => 'fresh_user', 'status' => UserStatus::Active]);
+
+        $this->withBearer($this->tokenFor($user))
+            ->deleteJson("/api/auth/oauth/identities/{$user->oauthIdentities()->sole()->id}")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['identity']);
+    }
+
     public function test_the_last_identity_cannot_be_unlinked_without_a_password_change_on_record(): void
     {
         $user = User::factory()->create();

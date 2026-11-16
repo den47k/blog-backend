@@ -41,6 +41,7 @@ class RegistrationService
                     'name' => null,
                     'tag' => null,
                     'password' => Hash::make($password),
+                    'password_changed_at' => now(),
                     'status' => UserStatus::PendingEmail,
                     'email_verified_at' => null,
                 ]);
@@ -49,6 +50,7 @@ class RegistrationService
             return $this->userRepository->create([
                 'email' => $email,
                 'password' => Hash::make($password),
+                'password_changed_at' => now(),
                 'status' => UserStatus::PendingEmail,
             ]);
         });
