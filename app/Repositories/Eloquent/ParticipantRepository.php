@@ -5,6 +5,7 @@ namespace App\Repositories\Eloquent;
 use App\Models\Conversation;
 use App\Models\Participant;
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
 class ParticipantRepository
@@ -34,6 +35,17 @@ class ParticipantRepository
     public function markJoined(Participant $participant): void
     {
         $participant->update(['joined_at' => now()]);
+    }
+
+    /**
+     * Written as a formatted string: the model's date format would cut the
+     * microseconds the read-state comparison relies on.
+     */
+    public function markRead(Conversation $conversation, string $userId, ?CarbonInterface $at = null): void
+    {
+        $conversation->participants()
+            ->where('user_id', $userId)
+            ->update(['last_read_at' => ($at ?? now())->format('Y-m-d H:i:s.u')]);
     }
 
     public function getAll(Conversation $conversation): Collection

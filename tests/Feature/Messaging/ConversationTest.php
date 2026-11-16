@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Messaging;
 
+use App\Http\Resources\Conversation\ConversationResource;
 use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -137,6 +138,24 @@ class ConversationTest extends TestCase
             ->assertJsonPath('data.0.hasUnread', true);
     }
 
+    public function test_mark_as_read_stores_the_read_mark_on_the_participant_only(): void
+    {
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+        $conversation = $this->privateConversation($user, $other);
+
+        $this->freezeTime();
+
+        $this->actingAsUser($user)
+            ->postJson("/api/conversations/{$conversation->id}/mark-as-read")
+            ->assertOk();
+
+        $participants = $conversation->participants()->get()->keyBy('user_id');
+
+        $this->assertTrue(now()->equalTo($participants[$user->id]->last_read_at));
+        $this->assertNull($participants[$other->id]->last_read_at);
+    }
+
     public function test_mark_as_read_is_forbidden_for_a_non_participant(): void
     {
         $conversation = $this->privateConversation(User::factory()->create(), User::factory()->create());
@@ -144,6 +163,23 @@ class ConversationTest extends TestCase
         $this->actingAsUser(User::factory()->create())
             ->postJson("/api/conversations/{$conversation->id}/mark-as-read")
             ->assertForbidden();
+    }
+
+    public function test_resource_renders_for_an_explicit_viewer_without_an_authenticated_user(): void
+    {
+        $viewer = User::factory()->create();
+        $other = User::factory()->create();
+        $conversation = $this->privateConversation($viewer, $other);
+
+        $this->assertGuest();
+
+        $forViewer = (new ConversationResource($conversation, $viewer))->resolve();
+        $this->assertSame($other->tag, $forViewer['userTag']);
+        $this->assertFalse($forViewer['hasUnread']);
+
+        $forOther = (new ConversationResource($conversation, $other, hasUnread: true))->resolve();
+        $this->assertSame($viewer->tag, $forOther['userTag']);
+        $this->assertTrue($forOther['hasUnread']);
     }
 
     // ----------------------------------------------------------- show by tag
@@ -337,6 +373,22 @@ class ConversationTest extends TestCase
             ->getJson('/api/conversations')
             ->assertOk()
             ->assertJsonCount(0, 'data');
+    }
+
+    public function test_read_state_is_deleted_with_the_conversation(): void
+    {
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+        $conversation = $this->privateConversation($user, $other);
+        $this->message($conversation, $other);
+
+        $this->actingAsUser($user);
+        $this->postJson("/api/conversations/{$conversation->id}/mark-as-read")->assertOk();
+        $this->assertDatabaseCount('participants', 2);
+
+        $this->deleteJson("/api/conversations/{$conversation->id}")->assertOk();
+
+        $this->assertDatabaseCount('participants', 0);
     }
 
     public function test_deleting_a_conversation_removes_its_attachment_files_only(): void

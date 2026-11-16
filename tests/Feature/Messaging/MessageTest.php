@@ -74,6 +74,29 @@ class MessageTest extends TestCase
         $this->assertSame($newestFirst->skip(30)->values()->all(), $secondPage->json('data.*.id'));
     }
 
+    public function test_index_cursor_tells_apart_messages_sent_within_the_same_second(): void
+    {
+        $base = now()->subHour()->startOfSecond();
+        $messages = Message::factory()
+            ->count(35)
+            ->for($this->conversation)
+            ->for($this->author)
+            ->state(new Sequence(fn (Sequence $sequence) => [
+                'created_at' => $base->copy()->addMilliseconds($sequence->index * 10),
+            ]))
+            ->create();
+        $newestFirst = $messages->reverse()->pluck('id')->values();
+
+        $this->actingAsUser($this->recipient);
+
+        $firstPage = $this->getJson($this->messagesUrl())->assertOk();
+        $this->assertSame($newestFirst->take(30)->all(), $firstPage->json('data.*.id'));
+
+        $secondPage = $this->getJson($this->messagesUrl().'?cursor='.urlencode($firstPage->json('meta.next_cursor')))
+            ->assertOk();
+        $this->assertSame($newestFirst->skip(30)->values()->all(), $secondPage->json('data.*.id'));
+    }
+
     public function test_index_items_match_the_client_contract(): void
     {
         $message = $this->message($this->conversation, $this->author, ['content' => 'hello']);
@@ -148,6 +171,22 @@ class MessageTest extends TestCase
 
         $this->actingAsUser($this->recipient)
             ->getJson('/api/conversations')
+            ->assertOk()
+            ->assertJsonPath('data.0.hasUnread', true);
+    }
+
+    public function test_a_message_sent_in_the_same_second_as_the_read_mark_is_unread(): void
+    {
+        $this->travelTo(now()->startOfSecond()->addMilliseconds(100));
+
+        $this->actingAsUser($this->recipient)
+            ->postJson("/api/conversations/{$this->conversation->id}/mark-as-read")
+            ->assertOk();
+
+        $this->travelTo(now()->addMilliseconds(200));
+        $this->message($this->conversation, $this->author);
+
+        $this->getJson('/api/conversations')
             ->assertOk()
             ->assertJsonPath('data.0.hasUnread', true);
     }

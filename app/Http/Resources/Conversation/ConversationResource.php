@@ -7,34 +7,29 @@ use App\Http\Resources\Message\MessageResource;
 use App\Http\Resources\User\UserResource;
 use App\Models\Participant;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class ConversationResource extends JsonResource
 {
     use ResolvesAvatarUrls;
 
-    protected User $currentUser;
-
-    protected static array $unreadMap = [];
-
-    public function __construct($resource)
-    {
+    public function __construct(
+        $resource,
+        private readonly User $viewer,
+        private readonly ?bool $hasUnread = null,
+    ) {
         parent::__construct($resource);
-        $this->currentUser = auth()->user();
     }
 
-    public static function withUnreadMap(array $map): void
+    public static function collectionFor(CursorPaginator $conversations, User $viewer): AnonymousResourceCollection
     {
-        static::$unreadMap = $map;
-    }
-
-    public static function forUser($resource, User $user): self
-    {
-        $instance = new self($resource);
-        $instance->currentUser = $user;
-
-        return $instance;
+        return new AnonymousResourceCollection(
+            $conversations->through(fn ($conversation) => new self($conversation, $viewer)),
+            self::class,
+        );
     }
 
     public function toArray(Request $request): array
@@ -48,7 +43,7 @@ class ConversationResource extends JsonResource
             'lastMessage' => new MessageResource(
                 $this->whenLoaded('lastMessage'),
             ),
-            'hasUnread' => static::$unreadMap[$this->id] ?? false,
+            'hasUnread' => $this->hasUnread ?? (bool) $this->resource->getAttribute('has_unread'),
             'avatar' => $this->resolveAvatarUrls($otherUser?->avatar),
             'type' => $this->conversation_type,
             'participants' => UserResource::collection(
@@ -62,7 +57,7 @@ class ConversationResource extends JsonResource
     private function getOtherParticipant(): ?Participant
     {
         return $this->participants
-            ->where('user_id', '!=', $this->currentUser->id)
+            ->where('user_id', '!=', $this->viewer->id)
             ->first();
     }
 }
