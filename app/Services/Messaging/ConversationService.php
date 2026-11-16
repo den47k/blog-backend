@@ -9,9 +9,7 @@ use App\Repositories\Interfaces\ConversationReadRepositoryInterface;
 use App\Repositories\Interfaces\ConversationRepositoryInterface;
 use App\Repositories\Interfaces\ParticipantRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
-use App\Support\Cache\CacheHelper;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class ConversationService
@@ -54,7 +52,6 @@ class ConversationService
 
                     if ($participant && ! $participant->joined_at) {
                         $participant->update(['joined_at' => now()]);
-                        DB::afterCommit(fn () => Cache::forget(CacheHelper::userConversations($initiator->id)));
                     }
                 }
 
@@ -68,10 +65,6 @@ class ConversationService
             $this->participantRepository->add($conversation, $initiator, $joinNow ? now() : null);
             $this->participantRepository->add($conversation, $other, null);
 
-            if ($joinNow) {
-                DB::afterCommit(fn () => Cache::forget(CacheHelper::userConversations($initiator->id)));
-            }
-
             return $conversation;
         });
     }
@@ -80,7 +73,6 @@ class ConversationService
     {
         DB::transaction(function () use ($conversation, $user) {
             $participants = $this->participantRepository->getAll($conversation);
-            $affectedUserIds = $participants->pluck('user_id')->all();
             $joinedOtherIds = $participants
                 ->filter(fn ($p) => $p->joined_at !== null && $p->user_id !== $user->id)
                 ->pluck('user_id')
@@ -90,7 +82,7 @@ class ConversationService
             $this->conversationRepository->delete($conversation);
 
             $recipients = $this->userRepository->findManyByIds($joinedOtherIds);
-            broadcast(new ConversationDeletedEvent($conversationId, $recipients->all(), $affectedUserIds));
+            broadcast(new ConversationDeletedEvent($conversationId, $recipients->all()));
         });
 
         $this->attachmentsService->deleteForConversation($conversation->id);

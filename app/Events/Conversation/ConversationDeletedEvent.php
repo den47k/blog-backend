@@ -17,13 +17,10 @@ class ConversationDeletedEvent implements ShouldBroadcastNow, ShouldDispatchAfte
 
     public array $recipients;
 
-    public array $affectedUserIds;
-
-    public function __construct(string $conversationId, array $recipients = [], array $affectedUserIds = [])
+    public function __construct(string $conversationId, array $recipients = [])
     {
         $this->conversationId = $conversationId;
         $this->recipients = $recipients;
-        $this->affectedUserIds = $affectedUserIds;
     }
 
     public function broadcastAs()

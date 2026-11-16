@@ -142,7 +142,6 @@ class MessageService
                     $newLastMessage,
                     $recipient,
                     $hasUnread,
-                    $message->user_id,
                 ))->toOthers();
             }
 
