@@ -23,11 +23,6 @@ class UserRepository implements UserRepositoryInterface
         return User::where('email', $email)->first();
     }
 
-    public function findByEmailAnyStatus(string $email): ?User
-    {
-        return User::where('email', $email)->first();
-    }
-
     public function findManyByIds(array $ids): Collection
     {
         return User::whereIn('id', $ids)->get();

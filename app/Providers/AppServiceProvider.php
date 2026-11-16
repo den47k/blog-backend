@@ -9,8 +9,6 @@ use App\Events\Auth\OAuthIdentityUnlinked;
 use App\Events\Auth\TwoFactorDisabled;
 use App\Events\Auth\TwoFactorEnabled;
 use App\Listeners\Auth\LogAuditEvent;
-use App\Listeners\Auth\RevokeTokensOnPasswordReset;
-use App\Listeners\Auth\TouchDeviceOnAuthentication;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Policies\ConversationPolicy;
@@ -32,7 +30,6 @@ use App\Repositories\Interfaces\OAuthIdentityRepositoryInterface;
 use App\Repositories\Interfaces\ParticipantRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use App\Repositories\Redis\ConversationReadRepository;
-use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -40,7 +37,6 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
-use Laravel\Sanctum\Events\TokenAuthenticated;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -70,9 +66,6 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(Conversation::class, ConversationPolicy::class);
         Gate::policy(Message::class, MessagePolicy::class);
-
-        Event::listen(TokenAuthenticated::class, TouchDeviceOnAuthentication::class);
-        Event::listen(PasswordReset::class, RevokeTokensOnPasswordReset::class);
 
         foreach ([
             DeviceRegistered::class,

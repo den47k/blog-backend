@@ -90,7 +90,7 @@ class OAuthService
         }
 
         $localUser = $providerEmail
-            ? $this->userRepository->findByEmailAnyStatus($providerEmail)
+            ? $this->userRepository->findByEmail($providerEmail)
             : null;
 
         if ($localUser) {

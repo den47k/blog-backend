@@ -18,11 +18,4 @@ class CreatePrivateConversationRequest extends FormRequest
             'should_join_now' => ['nullable', 'boolean'],
         ];
     }
-
-    public function messages(): array
-    {
-        return [
-            'recipient_tag.exists' => 'User with this tag does not exist',
-        ];
-    }
 }

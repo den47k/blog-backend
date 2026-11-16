@@ -8,7 +8,6 @@ Route::prefix('conversations')->group(function () {
     Route::get('/', [ConversationController::class, 'index'])->name('conversation.index');
     Route::get('/private/{tag}', [ConversationController::class, 'show'])->name('conversation.private.show');
     Route::post('/private', [ConversationController::class, 'createPrivateConversation'])->name('conversation.private');
-    // Route::post('/group', [ConversationController::class, 'createGroupConversation'])->name('conversation.group');
     Route::delete('/{conversation:id}', [ConversationController::class, 'destroy'])->name('conversation.destroy');
     Route::post('/{conversation:id}/mark-as-read', [ConversationController::class, 'markAsRead'])->name('conversation.markAsRead');
 

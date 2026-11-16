@@ -9,11 +9,6 @@ use Illuminate\Support\Collection;
 
 class DeviceRepository implements DeviceRepositoryInterface
 {
-    public function findById(string $id): ?Device
-    {
-        return Device::find($id);
-    }
-
     public function findForUser(User $user, string $id): ?Device
     {
         return Device::where('user_id', $user->id)->where('id', $id)->first();
@@ -27,7 +22,6 @@ class DeviceRepository implements DeviceRepositoryInterface
     public function listForUser(User $user): Collection
     {
         return Device::where('user_id', $user->id)
-            ->whereNull('revoked_at')
             ->orderByDesc('last_seen_at')
             ->get();
     }

@@ -32,13 +32,4 @@ trait HasProfilePhoto
         $this->avatar = null;
         $this->save();
     }
-
-    public function getAvatarUrls(): ?array
-    {
-        if (empty($this->avatar)) {
-            return null;
-        }
-
-        return app(AvatarService::class)->getUrls($this->avatar);
-    }
 }

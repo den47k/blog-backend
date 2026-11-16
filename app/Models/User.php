@@ -21,7 +21,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'email_verified_at',
         'password',
-        'phone',
         'status',
         'password_changed_at',
     ];
@@ -82,11 +81,6 @@ class User extends Authenticatable implements MustVerifyEmail
     public function hasTwoFactorEnabled(): bool
     {
         return $this->twoFactorSecret?->confirmed_at !== null;
-    }
-
-    public function isActive(): bool
-    {
-        return $this->status === UserStatus::Active;
     }
 
     public function hasVerifiedEmail(): bool

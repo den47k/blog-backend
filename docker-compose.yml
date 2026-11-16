@@ -11,7 +11,6 @@ services:
             - 'host.docker.internal:host-gateway'
         ports:
             - '${APP_PORT:-80}:80'
-            # - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
         environment:
             WWWUSER: '${WWWUSER}'
             LARAVEL_SAIL: 1
@@ -37,6 +36,7 @@ services:
         environment:
             CENTRIFUGO_TOKEN_HMAC_SECRET_KEY: '${CENTRIFUGO_TOKEN_HMAC_SECRET}'
             CENTRIFUGO_API_KEY: '${CENTRIFUGO_API_KEY}'
+            CENTRIFUGO_ALLOWED_ORIGINS: '${CENTRIFUGO_ALLOWED_ORIGINS:-http://localhost:5173}'
         ports:
             - '${FORWARD_CENTRIFUGO_PORT:-8000}:8000'
         ulimits:
@@ -71,7 +71,7 @@ services:
             retries: 3
             timeout: 5s
     redis:
-        image: 'redis:alpine'
+        image: 'redis:8.2-alpine'
         ports:
             - '${FORWARD_REDIS_PORT:-6379}:6379'
         volumes:

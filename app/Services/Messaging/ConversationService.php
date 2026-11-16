@@ -67,7 +67,6 @@ class ConversationService
 
             $conversation = $this->conversationRepository->create([
                 'conversation_type' => 'private',
-                'is_public' => false,
             ]);
 
             $this->participantRepository->add($conversation, $initiator, $should_join_now ? now() : null);
