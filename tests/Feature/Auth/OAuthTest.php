@@ -367,4 +367,11 @@ class OAuthTest extends TestCase
 
         $this->assertDatabaseHas('oauth_identities', ['id' => $foreign->id]);
     }
+
+    public function test_a_malformed_identity_id_is_not_found(): void
+    {
+        $this->withBearer($this->tokenFor(User::factory()->create()))
+            ->deleteJson('/api/auth/oauth/identities/123')
+            ->assertNotFound();
+    }
 }

@@ -15,6 +15,6 @@ Route::prefix('auth/oauth')->group(function () {
     });
 
     Route::middleware(['auth:sanctum', 'abilities:*'])->group(function () {
-        Route::delete('identities/{id}', [OAuthController::class, 'unlink']);
+        Route::delete('identities/{id}', [OAuthController::class, 'unlink'])->whereUuid('id');
     });
 });

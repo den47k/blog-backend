@@ -270,6 +270,48 @@ class ConversationTest extends TestCase
             ->assertJsonValidationErrors('user_id');
     }
 
+    public function test_create_private_conversation_rejects_a_malformed_recipient_id(): void
+    {
+        $this->actingAsUser(User::factory()->create())
+            ->postJson('/api/conversations/private', ['user_id' => 'not-a-uuid'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('user_id');
+    }
+
+    public function test_create_private_conversation_rejects_yourself_as_the_recipient(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAsUser($user)
+            ->postJson('/api/conversations/private', ['user_id' => $user->id])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('user_id');
+
+        $this->assertDatabaseCount('conversations', 0);
+    }
+
+    public function test_create_private_conversation_rejects_a_recipient_who_has_not_finished_registration(): void
+    {
+        $pending = User::factory()->pendingProfile()->create();
+
+        $this->actingAsUser(User::factory()->create())
+            ->postJson('/api/conversations/private', ['user_id' => $pending->id])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('user_id');
+    }
+
+    public function test_create_private_conversation_does_not_join_by_default(): void
+    {
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+
+        $this->actingAsUser($user)
+            ->postJson('/api/conversations/private', ['user_id' => $other->id])
+            ->assertCreated();
+
+        $this->assertDatabaseHas('participants', ['user_id' => $user->id, 'joined_at' => null]);
+    }
+
     // --------------------------------------------------------------- destroy
 
     public function test_participant_can_delete_a_conversation_with_everything_in_it(): void

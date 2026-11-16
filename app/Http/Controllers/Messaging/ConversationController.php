@@ -47,8 +47,8 @@ class ConversationController extends Controller
     {
         $conversation = $this->conversationService->createPrivateConversation(
             $request->user(),
-            $request->user_id,
-            $request->should_join_now
+            $request->validated('user_id'),
+            $request->boolean('should_join_now'),
         );
 
         ConversationResource::withUnreadMap(

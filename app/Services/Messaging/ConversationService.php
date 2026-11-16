@@ -13,7 +13,6 @@ use App\Support\Cache\CacheHelper;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use InvalidArgumentException;
 
 class ConversationService
 {
@@ -41,19 +40,15 @@ class ConversationService
         return $conversation;
     }
 
-    public function createPrivateConversation(User $initiator, string $recipientId, bool $should_join_now): Conversation
+    public function createPrivateConversation(User $initiator, string $recipientId, bool $joinNow): Conversation
     {
         $other = $this->userRepository->findOrFail($recipientId);
 
-        if ($initiator->id === $other->id) {
-            throw new InvalidArgumentException('Cannot create conversation with yourself');
-        }
-
-        return DB::transaction(function () use ($initiator, $other, $should_join_now) {
+        return DB::transaction(function () use ($initiator, $other, $joinNow) {
             $existingConversation = $this->conversationRepository->findExistingPrivate($initiator, $other);
 
             if ($existingConversation) {
-                if ($should_join_now) {
+                if ($joinNow) {
                     $participant = $this->participantRepository->find($existingConversation, $initiator->id);
 
                     if ($participant && ! $participant->joined_at) {
@@ -69,10 +64,10 @@ class ConversationService
                 'conversation_type' => 'private',
             ]);
 
-            $this->participantRepository->add($conversation, $initiator, $should_join_now ? now() : null);
+            $this->participantRepository->add($conversation, $initiator, $joinNow ? now() : null);
             $this->participantRepository->add($conversation, $other, null);
 
-            if ($should_join_now) {
+            if ($joinNow) {
                 Cache::forget(CacheHelper::userConversations($initiator->id));
             }
 
