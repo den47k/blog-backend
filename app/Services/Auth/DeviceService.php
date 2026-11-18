@@ -65,7 +65,7 @@ class DeviceService
                 'last_seen_ip' => $request->ip(),
             ]);
 
-            return new AuthResult(AuthStatus::LoggedIn, $newToken->plainTextToken, $user, $device);
+            return new AuthResult(AuthStatus::Authenticated, $newToken->plainTextToken, $user, $device);
         });
 
         event(new AuthAudited('device.registered', $user, [

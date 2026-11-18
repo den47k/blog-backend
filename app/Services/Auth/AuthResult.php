@@ -8,7 +8,7 @@ use App\Models\User;
 
 /**
  * Outcome of an authentication step. The token is a full access token only
- * for LoggedIn; every other status carries a short-lived, single-purpose one.
+ * for Authenticated; every other status carries a short-lived, single-purpose one.
  */
 final readonly class AuthResult
 {

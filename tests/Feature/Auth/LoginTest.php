@@ -28,6 +28,7 @@ class LoginTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonStructure(self::LOGIN_SUCCESS_KEYS)
+            ->assertJsonPath('status', 'authenticated')
             ->assertJsonPath('token_type', 'Bearer')
             ->assertJsonPath('user.id', $user->id)
             ->assertJsonPath('user.email', $user->email)

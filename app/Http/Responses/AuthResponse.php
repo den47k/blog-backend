@@ -12,7 +12,8 @@ class AuthResponse
     public static function from(AuthResult $result, int $loggedInStatus = 200): JsonResponse
     {
         return match ($result->status) {
-            AuthStatus::LoggedIn => response()->json([
+            AuthStatus::Authenticated => response()->json([
+                'status' => $result->status->value,
                 'user' => new AuthenticatedUserResource($result->user),
                 'token' => $result->token,
                 'token_type' => 'Bearer',
@@ -20,7 +21,7 @@ class AuthResponse
             ], $loggedInStatus),
 
             AuthStatus::TwoFactorRequired => response()->json([
-                'requires_2fa' => true,
+                'status' => $result->status->value,
                 'challenge_token' => $result->token,
                 'token_type' => 'Bearer',
                 'expires_in' => $result->expiresIn,
@@ -31,7 +32,7 @@ class AuthResponse
                 'link_token' => $result->token,
                 'token_type' => 'Bearer',
                 'expires_in' => $result->expiresIn,
-            ], 409),
+            ]),
 
             AuthStatus::PendingEmail, AuthStatus::PendingProfile => response()->json([
                 'status' => $result->status->value,

@@ -255,6 +255,7 @@ class RegistrationTest extends TestCase
         ])
             ->assertCreated()
             ->assertJsonStructure(self::LOGIN_SUCCESS_KEYS)
+            ->assertJsonPath('status', 'authenticated')
             ->assertJsonPath('token_type', 'Bearer')
             ->assertJsonPath('user.name', 'New User')
             ->assertJsonPath('user.tag', 'new_user')

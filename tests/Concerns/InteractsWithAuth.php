@@ -27,6 +27,7 @@ trait InteractsWithAuth
 
     /** LoginSuccessSchema */
     protected const LOGIN_SUCCESS_KEYS = [
+        'status',
         'user' => self::AUTHENTICATED_USER_KEYS,
         'token',
         'token_type',
@@ -34,7 +35,7 @@ trait InteractsWithAuth
     ];
 
     /** Login2FARequiredSchema */
-    protected const TWO_FACTOR_REQUIRED_KEYS = ['requires_2fa', 'challenge_token', 'token_type', 'expires_in'];
+    protected const TWO_FACTOR_REQUIRED_KEYS = ['status', 'challenge_token', 'token_type', 'expires_in'];
 
     /**
      * Sends the following requests with the given bearer token.

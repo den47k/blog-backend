@@ -117,7 +117,7 @@ class TwoFactorTest extends TestCase
             ->assertOk()
             ->assertJsonStructure(self::TWO_FACTOR_REQUIRED_KEYS)
             ->assertJsonMissingPath('token')
-            ->assertJsonPath('requires_2fa', true)
+            ->assertJsonPath('status', 'two_factor_required')
             ->assertJsonPath('token_type', 'Bearer')
             ->assertJsonPath('expires_in', 300);
 
@@ -141,6 +141,7 @@ class TwoFactorTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonStructure(self::LOGIN_SUCCESS_KEYS)
+            ->assertJsonPath('status', 'authenticated')
             ->assertJsonPath('user.id', $user->id)
             ->assertJsonPath('user.twoFactorEnabled', true);
 
@@ -196,7 +197,8 @@ class TwoFactorTest extends TestCase
         $this->withBearer($this->challenge($user))
             ->postJson('/api/auth/2fa/verify', ['recovery_code' => 'abcdefghjk', 'device_name' => 'Phone'])
             ->assertOk()
-            ->assertJsonStructure(self::LOGIN_SUCCESS_KEYS);
+            ->assertJsonStructure(self::LOGIN_SUCCESS_KEYS)
+            ->assertJsonPath('status', 'authenticated');
 
         $this->assertNotNull($user->recoveryCodes()->sole()->used_at);
 
