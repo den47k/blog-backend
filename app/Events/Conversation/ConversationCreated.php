@@ -5,44 +5,45 @@ namespace App\Events\Conversation;
 use App\Http\Resources\Conversation\ConversationResource;
 use App\Models\Conversation;
 use App\Models\User;
-use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class ConversationCreatedEvent implements ShouldBroadcastNow, ShouldDispatchAfterCommit
+class ConversationCreated implements ShouldBroadcastNow, ShouldDispatchAfterCommit
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use Dispatchable, SerializesModels;
 
     public Conversation $conversation;
 
     public User $recipient;
 
-    public function __construct(Conversation $conversation, User $recipient)
+    public bool $hasUnread;
+
+    public function __construct(Conversation $conversation, User $recipient, bool $hasUnread)
     {
         $this->conversation = $conversation;
         $this->recipient = $recipient;
+        $this->hasUnread = $hasUnread;
     }
 
     public function broadcastAs()
     {
-        return 'ConversationCreated';
+        return 'conversation.created';
     }
 
     public function broadcastWith()
     {
         return [
-            // Sent to the recipient together with the first message, which they have not seen yet.
-            'conversation' => (new ConversationResource($this->conversation, $this->recipient, hasUnread: true))->resolve(),
+            'conversation' => (new ConversationResource($this->conversation, $this->recipient, hasUnread: $this->hasUnread))->resolve(),
         ];
     }
 
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('user.'.$this->recipient->id),
+            new PrivateChannel('user.' . $this->recipient->id),
         ];
     }
 }

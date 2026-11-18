@@ -14,7 +14,7 @@ class CentrifugoBroadcasterTest extends TestCase
 {
     use MockeryPHPUnitIntegration;
 
-    private const NAMESPACES = ['user' => 'user', 'conversation' => 'conv'];
+    private const NAMESPACES = ['user' => 'user', 'room' => 'rooms'];
 
     private function broadcaster(MockInterface $client): CentrifugoBroadcaster
     {
@@ -26,10 +26,10 @@ class CentrifugoBroadcasterTest extends TestCase
         $client = Mockery::mock(CentrifugoClient::class);
         $client->shouldReceive('broadcast')
             ->once()
-            ->with(['user:42', 'conv:abc-123'], ['event' => 'Something', 'data' => ['foo' => 'bar']]);
+            ->with(['user:42', 'rooms:abc-123'], ['event' => 'Something', 'data' => ['foo' => 'bar']]);
 
         $this->broadcaster($client)->broadcast(
-            [new PrivateChannel('user.42'), new PrivateChannel('conversation.abc-123')],
+            [new PrivateChannel('user.42'), new PrivateChannel('room.abc-123')],
             'Something',
             ['foo' => 'bar'],
         );
@@ -40,9 +40,9 @@ class CentrifugoBroadcasterTest extends TestCase
         $client = Mockery::mock(CentrifugoClient::class);
         $client->shouldReceive('broadcast')
             ->once()
-            ->with(['user:1', 'conv:2'], Mockery::type('array'));
+            ->with(['user:1', 'rooms:2'], Mockery::type('array'));
 
-        $this->broadcaster($client)->broadcast(['private-user.1', 'conversation.2'], 'Something');
+        $this->broadcaster($client)->broadcast(['private-user.1', 'room.2'], 'Something');
     }
 
     public function test_unmapped_channels_are_dropped(): void
@@ -68,16 +68,12 @@ class CentrifugoBroadcasterTest extends TestCase
         $broadcaster->broadcast([], 'Something', ['foo' => 'bar']);
     }
 
-    public function test_socket_id_is_moved_out_of_the_payload_into_origin_client(): void
+    public function test_socket_id_is_removed_from_the_payload_and_not_forwarded(): void
     {
         $client = Mockery::mock(CentrifugoClient::class);
         $client->shouldReceive('broadcast')
             ->once()
-            ->with(['user:1'], [
-                'event' => 'Something',
-                'data' => ['foo' => 'bar'],
-                '_origin_client' => 'client-123',
-            ]);
+            ->with(['user:1'], ['event' => 'Something', 'data' => ['foo' => 'bar']]);
 
         $this->broadcaster($client)->broadcast(
             ['private-user.1'],

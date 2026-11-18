@@ -2,16 +2,15 @@
 
 namespace App\Events\Conversation;
 
-use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class ConversationDeletedEvent implements ShouldBroadcastNow, ShouldDispatchAfterCommit
+class ConversationDeleted implements ShouldBroadcastNow, ShouldDispatchAfterCommit
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use Dispatchable, SerializesModels;
 
     public string $conversationId;
 
@@ -25,7 +24,7 @@ class ConversationDeletedEvent implements ShouldBroadcastNow, ShouldDispatchAfte
 
     public function broadcastAs()
     {
-        return 'ConversationDeleted';
+        return 'conversation.deleted';
     }
 
     public function broadcastWith()

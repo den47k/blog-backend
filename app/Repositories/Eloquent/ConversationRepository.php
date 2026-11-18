@@ -15,7 +15,8 @@ class ConversationRepository
         return $this->selectUnreadFor($user->activeConversations(), $user->id)
             ->with([
                 'participants.user:id,name,tag,avatar',
-                'lastMessage:id,content,created_at,updated_at',
+                'lastMessage.user:id,name,tag,avatar',
+                'lastMessage.attachment',
             ])
             ->orderByDesc('updated_at')
             ->orderByDesc('id')
@@ -26,10 +27,10 @@ class ConversationRepository
     {
         return $this->selectUnreadFor(Conversation::query(), $initiator->id)
             ->where('conversation_type', 'private')
-            ->whereHas('participants', fn ($q) => $q->where('user_id', $initiator->id))
-            ->whereHas('participants', fn ($q) => $q->where('user_id', $other->id))
+            ->whereHas('participants', fn($q) => $q->where('user_id', $initiator->id))
+            ->whereHas('participants', fn($q) => $q->where('user_id', $other->id))
             ->has('participants', '=', 2)
-            ->with('lastMessage:id,content,created_at,updated_at')
+            ->with(['lastMessage.user:id,name,tag,avatar', 'lastMessage.attachment'])
             ->first();
     }
 
@@ -50,10 +51,6 @@ class ConversationRepository
         return Conversation::findOrFail($id);
     }
 
-    /**
-     * Takes a row lock for the rest of the transaction and brings the
-     * given model up to date with the locked row.
-     */
     public function lockForUpdate(Conversation $conversation): void
     {
         $locked = Conversation::whereKey($conversation->id)->lockForUpdate()->first();
@@ -78,25 +75,13 @@ class ConversationRepository
         $conversation->delete();
     }
 
-    /**
-     * Adds the `has_unread` column for the given user.
-     *
-     * @template TQuery of \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Eloquent\Relations\Relation
-     *
-     * @param  TQuery  $query
-     * @return TQuery
-     */
     private function selectUnreadFor($query, string $userId)
     {
         return $query
             ->select('conversations.*')
-            ->selectRaw('exists ('.$this->unreadFor($userId)->toSql().') as has_unread', [$userId]);
+            ->selectRaw('exists (' . $this->unreadFor($userId)->toSql() . ') as has_unread', [$userId]);
     }
 
-    /**
-     * Correlated to the outer `conversations` row: its last message is newer
-     * than the user's read mark, or the user has never read the conversation.
-     */
     private function unreadFor(string $userId): QueryBuilder
     {
         return DB::table('messages')
@@ -104,7 +89,7 @@ class ConversationRepository
             ->selectRaw('1')
             ->whereColumn('messages.id', 'conversations.last_message_id')
             ->where('read_state.user_id', $userId)
-            ->where(fn (QueryBuilder $q) => $q
+            ->where(fn(QueryBuilder $q) => $q
                 ->whereNull('read_state.last_read_at')
                 ->orWhereColumn('messages.created_at', '>', 'read_state.last_read_at'));
     }

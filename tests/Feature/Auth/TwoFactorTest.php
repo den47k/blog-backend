@@ -67,7 +67,7 @@ class TwoFactorTest extends TestCase
         $this->assertDatabaseMissing('recovery_codes', ['code_hash' => $codes[0]]);
 
         // Fresh request: the guard still holds the user loaded before enrollment.
-        $this->resetAuth()->getJson('/api/user')->assertJsonPath('data.twoFactorEnabled', true);
+        $this->resetAuth()->getJson('/api/auth/me')->assertJsonPath('data.twoFactorEnabled', true);
     }
 
     public function test_confirm_rejects_a_wrong_code(): void
@@ -117,7 +117,7 @@ class TwoFactorTest extends TestCase
             ->assertOk()
             ->assertJsonStructure(self::TWO_FACTOR_REQUIRED_KEYS)
             ->assertJsonMissingPath('token')
-            ->assertJsonPath('requires_2fa', true)
+            ->assertJsonPath('status', 'two_factor_required')
             ->assertJsonPath('token_type', 'Bearer')
             ->assertJsonPath('expires_in', 300);
 
@@ -141,6 +141,7 @@ class TwoFactorTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonStructure(self::LOGIN_SUCCESS_KEYS)
+            ->assertJsonPath('status', 'authenticated')
             ->assertJsonPath('user.id', $user->id)
             ->assertJsonPath('user.twoFactorEnabled', true);
 
@@ -153,7 +154,7 @@ class TwoFactorTest extends TestCase
             'device_name' => 'Phone',
         ])->assertUnauthorized();
 
-        $this->withBearer($response->json('token'))->getJson('/api/user')->assertOk();
+        $this->withBearer($response->json('token'))->getJson('/api/auth/me')->assertOk();
     }
 
     public function test_verify_rejects_a_wrong_code(): void
@@ -196,7 +197,8 @@ class TwoFactorTest extends TestCase
         $this->withBearer($this->challenge($user))
             ->postJson('/api/auth/2fa/verify', ['recovery_code' => 'abcdefghjk', 'device_name' => 'Phone'])
             ->assertOk()
-            ->assertJsonStructure(self::LOGIN_SUCCESS_KEYS);
+            ->assertJsonStructure(self::LOGIN_SUCCESS_KEYS)
+            ->assertJsonPath('status', 'authenticated');
 
         $this->assertNotNull($user->recoveryCodes()->sole()->used_at);
 
@@ -250,8 +252,8 @@ class TwoFactorTest extends TestCase
         $this->assertDatabaseCount('two_factor_secrets', 0);
         $this->assertDatabaseCount('recovery_codes', 0);
 
-        $this->withBearer($current)->getJson('/api/user')->assertOk();
-        $this->withBearer($other)->getJson('/api/user')->assertUnauthorized();
+        $this->withBearer($current)->getJson('/api/auth/me')->assertOk();
+        $this->withBearer($other)->getJson('/api/auth/me')->assertUnauthorized();
     }
 
     public function test_disable_is_rejected_when_not_enabled(): void

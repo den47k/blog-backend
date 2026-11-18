@@ -141,6 +141,7 @@ class OAuthTest extends TestCase
         $response = $this->oauthCallback('github')
             ->assertOk()
             ->assertJsonStructure(self::LOGIN_SUCCESS_KEYS)
+            ->assertJsonPath('status', 'authenticated')
             ->assertJsonPath('user.id', $user->id);
 
         // The device is named after the provider unless the client names it.
@@ -158,7 +159,7 @@ class OAuthTest extends TestCase
         $this->oauthCallback('github')
             ->assertOk()
             ->assertJsonStructure(self::TWO_FACTOR_REQUIRED_KEYS)
-            ->assertJsonPath('requires_2fa', true);
+            ->assertJsonPath('status', 'two_factor_required');
 
         $this->assertSame(0, $user->devices()->count());
     }
@@ -266,6 +267,7 @@ class OAuthTest extends TestCase
         $this->oauthCallback('google')
             ->assertOk()
             ->assertJsonStructure(self::LOGIN_SUCCESS_KEYS)
+            ->assertJsonPath('status', 'authenticated')
             ->assertJsonPath('user.id', $user->id);
 
         $this->assertDatabaseHas('oauth_identities', [
@@ -283,7 +285,7 @@ class OAuthTest extends TestCase
         $this->storeState('google');
 
         $this->oauthCallback('google')
-            ->assertConflict()
+            ->assertOk()
             ->assertJsonStructure(['status', 'link_token', 'token_type', 'expires_in'])
             ->assertJsonPath('status', 'link_required')
             ->assertJsonPath('expires_in', 600);
@@ -302,7 +304,7 @@ class OAuthTest extends TestCase
         $this->fakeProviderUser('google', 'g-1', $user->email, ['email_verified' => false]);
         $this->storeState('google');
 
-        return $this->oauthCallback('google')->assertConflict()->json('link_token');
+        return $this->oauthCallback('google')->assertOk()->json('link_token');
     }
 
     public function test_confirm_link_with_the_password_links_the_identity_and_logs_in(): void
@@ -317,6 +319,7 @@ class OAuthTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonStructure(self::LOGIN_SUCCESS_KEYS)
+            ->assertJsonPath('status', 'authenticated')
             ->assertJsonPath('user.id', $user->id);
 
         $this->assertDatabaseHas('oauth_identities', [

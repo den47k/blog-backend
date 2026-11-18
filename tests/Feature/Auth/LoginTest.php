@@ -28,6 +28,7 @@ class LoginTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonStructure(self::LOGIN_SUCCESS_KEYS)
+            ->assertJsonPath('status', 'authenticated')
             ->assertJsonPath('token_type', 'Bearer')
             ->assertJsonPath('user.id', $user->id)
             ->assertJsonPath('user.email', $user->email)
@@ -62,7 +63,7 @@ class LoginTest extends TestCase
         $session = $this->login($user);
 
         $this->withBearer($session['token'])
-            ->getJson('/api/user')
+            ->getJson('/api/auth/me')
             ->assertOk()
             ->assertJsonStructure(['data' => self::AUTHENTICATED_USER_KEYS])
             ->assertJsonPath('data.id', $user->id);
@@ -133,8 +134,8 @@ class LoginTest extends TestCase
             ->assertOk()
             ->assertJsonStructure(['message']);
 
-        $this->withBearer($first['token'])->getJson('/api/user')->assertUnauthorized();
-        $this->withBearer($second['token'])->getJson('/api/user')->assertOk();
+        $this->withBearer($first['token'])->getJson('/api/auth/me')->assertUnauthorized();
+        $this->withBearer($second['token'])->getJson('/api/auth/me')->assertOk();
 
         // The device goes away with its token.
         $this->assertDatabaseMissing('devices', ['id' => $first['device_id']]);
@@ -151,7 +152,7 @@ class LoginTest extends TestCase
 
         $this->assertSame(0, $user->tokens()->count());
         $this->assertSame(0, $user->devices()->count());
-        $this->withBearer($second['token'])->getJson('/api/user')->assertUnauthorized();
+        $this->withBearer($second['token'])->getJson('/api/auth/me')->assertUnauthorized();
     }
 
     public function test_logout_requires_authentication(): void

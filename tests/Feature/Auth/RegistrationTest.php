@@ -255,6 +255,7 @@ class RegistrationTest extends TestCase
         ])
             ->assertCreated()
             ->assertJsonStructure(self::LOGIN_SUCCESS_KEYS)
+            ->assertJsonPath('status', 'authenticated')
             ->assertJsonPath('token_type', 'Bearer')
             ->assertJsonPath('user.name', 'New User')
             ->assertJsonPath('user.tag', 'new_user')
@@ -272,10 +273,10 @@ class RegistrationTest extends TestCase
 
         // The registration token is single use; only the session token remains.
         $this->assertSame(1, $user->tokens()->count());
-        $this->withBearer($registrationToken)->getJson('/api/user')->assertUnauthorized();
+        $this->withBearer($registrationToken)->getJson('/api/auth/me')->assertUnauthorized();
 
         $this->withBearer($response->json('token'))
-            ->getJson('/api/user')
+            ->getJson('/api/auth/me')
             ->assertOk()
             ->assertJsonPath('data.id', $user->id);
     }

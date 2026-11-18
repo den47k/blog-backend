@@ -68,48 +68,15 @@ class RealtimeTokenTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_participant_can_subscribe_to_the_conversation_channel(): void
+    public function test_the_removed_conversation_namespace_is_rejected_even_for_participants(): void
     {
         $user = User::factory()->create();
         $conversation = $this->privateConversation($user, User::factory()->create());
-        $channel = "conv:{$conversation->id}";
-
-        $response = $this->actingAsUser($user)
-            ->postJson('/api/realtime/subscribe', ['channel' => $channel])
-            ->assertOk()
-            ->assertJsonPath('channel', $channel);
-
-        $claims = $this->decode($response->json('token'));
-
-        $this->assertSame($user->id, $claims['sub']);
-        $this->assertSame($channel, $claims['channel']);
-    }
-
-    public function test_participant_who_has_not_joined_yet_can_subscribe_to_the_conversation_channel(): void
-    {
-        $user = User::factory()->create();
-        $conversation = $this->privateConversation($user, User::factory()->create(), joined: false);
 
         $this->actingAsUser($user)
             ->postJson('/api/realtime/subscribe', ['channel' => "conv:{$conversation->id}"])
-            ->assertOk();
-    }
-
-    public function test_non_participant_cannot_subscribe_to_a_conversation_channel(): void
-    {
-        $conversation = $this->privateConversation(User::factory()->create(), User::factory()->create());
-
-        $this->actingAsUser(User::factory()->create())
-            ->postJson('/api/realtime/subscribe', ['channel' => "conv:{$conversation->id}"])
             ->assertForbidden()
             ->assertExactJson(['message' => 'Forbidden.']);
-    }
-
-    public function test_a_malformed_conversation_channel_is_rejected(): void
-    {
-        $this->actingAsUser(User::factory()->create())
-            ->postJson('/api/realtime/subscribe', ['channel' => 'conv:123'])
-            ->assertForbidden();
     }
 
     public function test_unknown_namespaces_are_rejected(): void

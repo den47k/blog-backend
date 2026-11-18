@@ -28,7 +28,7 @@ class PasswordResetTest extends TestCase
      */
     private function requestToken(User $user): string
     {
-        $this->postJson('/api/forgot-password', ['email' => $user->email])->assertOk();
+        $this->postJson('/api/auth/password/forgot', ['email' => $user->email])->assertOk();
 
         return Notification::sent($user, ResetPassword::class)->last()->token;
     }
@@ -40,7 +40,7 @@ class PasswordResetTest extends TestCase
         config(['app.frontend_url' => 'https://app.example.test/']);
         $user = User::factory()->create();
 
-        $this->postJson('/api/forgot-password', ['email' => $user->email])
+        $this->postJson('/api/auth/password/forgot', ['email' => $user->email])
             ->assertOk()
             ->assertJsonStructure(['message']);
 
@@ -54,7 +54,7 @@ class PasswordResetTest extends TestCase
 
     public function test_forgot_password_does_not_reveal_whether_the_email_exists(): void
     {
-        $this->postJson('/api/forgot-password', ['email' => 'nobody@example.com'])
+        $this->postJson('/api/auth/password/forgot', ['email' => 'nobody@example.com'])
             ->assertOk()
             ->assertJsonStructure(['message']);
 
@@ -63,7 +63,7 @@ class PasswordResetTest extends TestCase
 
     public function test_forgot_password_requires_a_valid_email(): void
     {
-        $this->postJson('/api/forgot-password', ['email' => 'not-an-email'])
+        $this->postJson('/api/auth/password/forgot', ['email' => 'not-an-email'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['email']);
     }
@@ -77,7 +77,7 @@ class PasswordResetTest extends TestCase
         $this->tokenFor($user);
         $token = $this->requestToken($user);
 
-        $this->postJson('/api/reset-password', [
+        $this->postJson('/api/auth/password/reset', [
             'token' => $token,
             'email' => $user->email,
             'password' => self::NEW_PASSWORD,
@@ -92,7 +92,7 @@ class PasswordResetTest extends TestCase
         $this->assertNotNull($user->password_changed_at);
         $this->assertSame(0, $user->tokens()->count());
 
-        $this->withBearer($session)->getJson('/api/user')->assertUnauthorized();
+        $this->withBearer($session)->getJson('/api/auth/me')->assertUnauthorized();
 
         $this->withoutBearer()
             ->postJson('/api/auth/login', ['email' => $user->email, 'password' => self::NEW_PASSWORD])
@@ -109,9 +109,9 @@ class PasswordResetTest extends TestCase
             'password_confirmation' => self::NEW_PASSWORD,
         ];
 
-        $this->postJson('/api/reset-password', $payload)->assertOk();
+        $this->postJson('/api/auth/password/reset', $payload)->assertOk();
 
-        $this->postJson('/api/reset-password', $payload)
+        $this->postJson('/api/auth/password/reset', $payload)
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['email']);
     }
@@ -121,7 +121,7 @@ class PasswordResetTest extends TestCase
         $user = User::factory()->create();
         $this->requestToken($user);
 
-        $this->postJson('/api/reset-password', [
+        $this->postJson('/api/auth/password/reset', [
             'token' => 'not-the-token',
             'email' => $user->email,
             'password' => self::NEW_PASSWORD,
@@ -137,7 +137,7 @@ class PasswordResetTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->postJson('/api/reset-password', [
+        $this->postJson('/api/auth/password/reset', [
             'token' => $this->requestToken($user),
             'email' => $user->email,
             'password' => 'short',

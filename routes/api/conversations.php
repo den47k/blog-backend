@@ -9,7 +9,7 @@ Route::prefix('conversations')->group(function () {
     Route::get('/private/{tag}', [ConversationController::class, 'show'])->name('conversation.private.show');
     Route::post('/private', [ConversationController::class, 'createPrivateConversation'])->name('conversation.private');
     Route::delete('/{conversation:id}', [ConversationController::class, 'destroy'])->name('conversation.destroy');
-    Route::post('/{conversation:id}/mark-as-read', [ConversationController::class, 'markAsRead'])->name('conversation.markAsRead');
+    Route::post('/{conversation:id}/read', [ConversationController::class, 'markAsRead'])->name('conversation.markAsRead');
 
     Route::get('/{conversation:id}/messages', [MessageController::class, 'index'])->name('conversation.messages.index');
     Route::post('/{conversation:id}/messages', [MessageController::class, 'store'])

@@ -54,10 +54,9 @@ class ParticipantRepository
             ->get(['user_id', 'joined_at']);
     }
 
-    public function getOtherParticipants(Conversation $conversation, string $excludeUserId): Collection
+    public function getUsers(Conversation $conversation): Collection
     {
         return $conversation->participants()
-            ->where('user_id', '!=', $excludeUserId)
             ->with('user')
             ->get()
             ->pluck('user');

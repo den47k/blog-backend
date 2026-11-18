@@ -49,8 +49,8 @@ class ConversationResource extends JsonResource
             'participants' => UserResource::collection(
                 $this->participants->loadMissing('user')->pluck('user'),
             ),
-            'createdAt' => $this->created_at->toIso8601String(),
-            'updatedAt' => $this->updated_at->toIso8601String(),
+            'createdAt' => $this->created_at->toISOString(),
+            'updatedAt' => $this->updated_at->toISOString(),
         ];
     }
 

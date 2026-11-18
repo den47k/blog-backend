@@ -4,30 +4,30 @@ namespace App\Events\Message;
 
 use App\Http\Resources\Message\MessageResource;
 use App\Models\Message;
-use Illuminate\Broadcasting\InteractsWithSockets;
+use App\Models\User;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class MessageCreatedEvent implements ShouldBroadcastNow, ShouldDispatchAfterCommit
+class MessageCreated implements ShouldBroadcastNow, ShouldDispatchAfterCommit
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use Dispatchable, SerializesModels;
 
     public Message $message;
 
-    public array $recipients;
+    public array $participants;
 
-    public function __construct(Message $message, array $recipients = [])
+    public function __construct(Message $message, array $participants = [])
     {
         $this->message = $message;
-        $this->recipients = $recipients;
+        $this->participants = $participants;
     }
 
     public function broadcastAs(): string
     {
-        return 'MessageCreatedEvent';
+        return 'message.created';
     }
 
     public function broadcastWith(): array
@@ -39,14 +39,9 @@ class MessageCreatedEvent implements ShouldBroadcastNow, ShouldDispatchAfterComm
 
     public function broadcastOn(): array
     {
-        $channels = [
-            new PrivateChannel('conversation.'.$this->message->conversation_id),
-        ];
-
-        foreach ($this->recipients as $recipient) {
-            $channels[] = new PrivateChannel("user.{$recipient->id}");
-        }
-
-        return $channels;
+        return array_map(
+            fn (User $user) => new PrivateChannel("user.{$user->id}"),
+            $this->participants,
+        );
     }
 }

@@ -12,7 +12,7 @@ class MessageRepository
     public function getPaginated(Conversation $conversation, int $perPage = 30): CursorPaginator
     {
         return $conversation->messages()
-            ->with('user:id,name,tag', 'attachment')
+            ->with('user:id,name,tag,avatar', 'attachment')
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->cursorPaginate($perPage);
@@ -55,6 +55,7 @@ class MessageRepository
     {
         return $conversation->messages()
             ->where('id', '!=', $excludeMessageId)
+            ->with('user:id,name,tag,avatar', 'attachment')
             ->latest()
             ->orderByDesc('id')
             ->first();
