@@ -8,12 +8,6 @@
             "presence": false,
             "history_size": 0,
             "allow_subscribe_for_client": false
-        },
-        {
-            "name": "conv",
-            "presence": false,
-            "history_size": 0,
-            "allow_subscribe_for_client": false
         }
     ]
 }

@@ -6,7 +6,6 @@ use App\Http\Resources\Message\MessageResource;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
-use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
@@ -15,7 +14,7 @@ use Illuminate\Queue\SerializesModels;
 
 class MessageDeletedEvent implements ShouldBroadcastNow, ShouldDispatchAfterCommit
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use Dispatchable, SerializesModels;
 
     public Conversation $conversation;
 
@@ -64,7 +63,6 @@ class MessageDeletedEvent implements ShouldBroadcastNow, ShouldDispatchAfterComm
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('conversation.'.$this->conversation->id),
             new PrivateChannel('user.'.$this->recipient->id),
         ];
     }

@@ -15,7 +15,6 @@ return [
 
     'namespaces' => [
         'user' => 'user',
-        'conversation' => 'conv',
     ],
 
     'http_timeout' => (int) env('CENTRIFUGO_HTTP_TIMEOUT', 3),

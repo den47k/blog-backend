@@ -72,15 +72,15 @@ class ConversationService
     {
         DB::transaction(function () use ($conversation, $user) {
             $participants = $this->participantRepository->getAll($conversation);
-            $joinedOtherIds = $participants
-                ->filter(fn ($p) => $p->joined_at !== null && $p->user_id !== $user->id)
+            $recipientIds = $participants
+                ->filter(fn ($p) => $p->joined_at !== null || $p->user_id === $user->id)
                 ->pluck('user_id')
                 ->all();
 
             $conversationId = $conversation->id;
             $this->conversationRepository->delete($conversation);
 
-            $recipients = $this->userRepository->findManyByIds($joinedOtherIds);
+            $recipients = $this->userRepository->findManyByIds($recipientIds);
             broadcast(new ConversationDeletedEvent($conversationId, $recipients->all()));
         });
 

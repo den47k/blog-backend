@@ -68,12 +68,16 @@ class MessageService
                         $conversation->load(['participants.user', 'lastMessage']);
 
                         foreach ($recipients as $recipient) {
-                            event(new ConversationCreatedEvent($conversation, $recipient));
+                            event(new ConversationCreatedEvent($conversation, $recipient, hasUnread: true));
                         }
+                        event(new ConversationCreatedEvent($conversation, $user, hasUnread: false));
                     }
                 }
 
-                broadcast(new MessageCreatedEvent($message->load('user', 'attachment'), $recipients->all()))->toOthers();
+                broadcast(new MessageCreatedEvent(
+                    $message->load('user', 'attachment'),
+                    $participants->pluck('user')->all(),
+                ));
 
                 return $message;
             });
@@ -95,10 +99,9 @@ class MessageService
                 'content' => $data['content'],
             ]);
 
-            $conversation = $message->conversation;
-            $recipients = $this->participantRepository->getOtherParticipants($conversation, $message->user_id);
+            $participants = $this->participantRepository->getUsers($message->conversation);
 
-            broadcast(new MessageUpdatedEvent($message->load('user', 'attachment'), $recipients->all()))->toOthers();
+            broadcast(new MessageUpdatedEvent($message->load('user', 'attachment'), $participants->all()));
 
             return $message;
         });
@@ -127,19 +130,15 @@ class MessageService
                 $conversation->setRelation('lastMessage', $newLastMessage);
             }
 
-            $recipients = $this->participantRepository->getOtherParticipants($conversation, $message->user_id);
-
-            foreach ($recipients as $recipient) {
-                $hasUnread = $this->conversationRepository->hasUnread($conversation, $recipient->id);
-
+            foreach ($this->participantRepository->getUsers($conversation) as $participant) {
                 broadcast(new MessageDeletedEvent(
                     $conversation,
                     $messageId,
                     $wasLastMessage,
                     $newLastMessage,
-                    $recipient,
-                    $hasUnread,
-                ))->toOthers();
+                    $participant,
+                    $this->conversationRepository->hasUnread($conversation, $participant->id),
+                ));
             }
 
             return new DeletedMessage($messageId, $wasLastMessage, $newLastMessage);

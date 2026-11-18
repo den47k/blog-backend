@@ -16,17 +16,12 @@ class CentrifugoBroadcaster extends Broadcaster
 
     public function broadcast(array $channels, $event, array $payload = [])
     {
-        $originClient = $payload['socket'] ?? null;
         unset($payload['socket']);
 
         $envelope = [
             'event' => $event,
             'data' => $payload,
         ];
-
-        if ($originClient !== null) {
-            $envelope['_origin_client'] = $originClient;
-        }
 
         $mapped = [];
         foreach ($this->formatChannels($channels) as $laravelChannel) {
