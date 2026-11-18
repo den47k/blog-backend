@@ -60,7 +60,7 @@ class ConversationTest extends TestCase
             ->getJson('/api/conversations')
             ->assertOk()
             ->assertJsonStructure([
-                'data' => ['*' => [...self::CONVERSATION_KEYS, 'lastMessage' => self::BARE_MESSAGE_KEYS]],
+                'data' => ['*' => [...self::CONVERSATION_KEYS, 'lastMessage' => self::MESSAGE_KEYS]],
                 'links' => ['next'],
                 'meta' => ['next_cursor'],
             ]);
@@ -78,6 +78,9 @@ class ConversationTest extends TestCase
 
         $this->assertSame($message->id, $item['lastMessage']['id']);
         $this->assertSame('hello', $item['lastMessage']['content']);
+        $this->assertSame($conversation->id, $item['lastMessage']['conversationId']);
+        $this->assertSame($other->id, $item['lastMessage']['sender']['id']);
+        $this->assertNull($item['lastMessage']['attachment']);
         $this->assertIsoDateTime($item['lastMessage']['createdAt']);
         $this->assertIsoDateTime($item['lastMessage']['updatedAt']);
 
@@ -113,8 +116,7 @@ class ConversationTest extends TestCase
             ->assertJsonPath('data.0.hasUnread', true);
 
         $this->postJson("/api/conversations/{$conversation->id}/mark-as-read")
-            ->assertOk()
-            ->assertExactJson(['message' => 'Conversation marked as read.']);
+            ->assertNoContent();
 
         $this->getJson('/api/conversations')
             ->assertOk()
@@ -130,7 +132,7 @@ class ConversationTest extends TestCase
 
         $this->actingAsUser($other)
             ->postJson("/api/conversations/{$conversation->id}/mark-as-read")
-            ->assertOk();
+            ->assertNoContent();
 
         $this->actingAsUser($user)
             ->getJson('/api/conversations')
@@ -148,7 +150,7 @@ class ConversationTest extends TestCase
 
         $this->actingAsUser($user)
             ->postJson("/api/conversations/{$conversation->id}/mark-as-read")
-            ->assertOk();
+            ->assertNoContent();
 
         $participants = $conversation->participants()->get()->keyBy('user_id');
 
@@ -227,13 +229,14 @@ class ConversationTest extends TestCase
                 'should_join_now' => false,
             ])
             ->assertCreated()
-            ->assertJsonStructure(['message', 'conversation' => self::CONVERSATION_KEYS])
-            ->assertJsonPath('conversation.type', 'private')
-            ->assertJsonPath('conversation.userTag', $other->tag)
-            ->assertJsonPath('conversation.title', $other->name)
-            ->assertJsonPath('conversation.hasUnread', false);
+            ->assertJsonStructure(['data' => self::CONVERSATION_KEYS])
+            ->assertJsonMissingPath('message')
+            ->assertJsonPath('data.type', 'private')
+            ->assertJsonPath('data.userTag', $other->tag)
+            ->assertJsonPath('data.title', $other->name)
+            ->assertJsonPath('data.hasUnread', false);
 
-        $conversationId = $response->json('conversation.id');
+        $conversationId = $response->json('data.id');
 
         $this->assertDatabaseCount('conversations', 1);
         $this->assertDatabaseHas('conversations', ['id' => $conversationId, 'conversation_type' => 'private']);
@@ -256,7 +259,7 @@ class ConversationTest extends TestCase
         $first = $this->postJson('/api/conversations/private', $payload)->assertCreated();
         $second = $this->postJson('/api/conversations/private', $payload)->assertCreated();
 
-        $this->assertSame($first->json('conversation.id'), $second->json('conversation.id'));
+        $this->assertSame($first->json('data.id'), $second->json('data.id'));
         $this->assertDatabaseCount('conversations', 1);
         $this->assertDatabaseCount('participants', 2);
     }
@@ -270,7 +273,7 @@ class ConversationTest extends TestCase
         $this->actingAsUser($user)
             ->postJson('/api/conversations/private', ['user_id' => $other->id, 'should_join_now' => false])
             ->assertCreated()
-            ->assertJsonPath('conversation.id', $existing->id);
+            ->assertJsonPath('data.id', $existing->id);
 
         $this->assertDatabaseCount('conversations', 1);
     }
@@ -362,8 +365,7 @@ class ConversationTest extends TestCase
 
         $this->actingAsUser($user)
             ->deleteJson("/api/conversations/{$conversation->id}")
-            ->assertOk()
-            ->assertExactJson(['message' => 'Conversation deleted successfully']);
+            ->assertNoContent();
 
         $this->assertDatabaseMissing('conversations', ['id' => $conversation->id]);
         $this->assertDatabaseMissing('participants', ['conversation_id' => $conversation->id]);
@@ -383,10 +385,10 @@ class ConversationTest extends TestCase
         $this->message($conversation, $other);
 
         $this->actingAsUser($user);
-        $this->postJson("/api/conversations/{$conversation->id}/mark-as-read")->assertOk();
+        $this->postJson("/api/conversations/{$conversation->id}/mark-as-read")->assertNoContent();
         $this->assertDatabaseCount('participants', 2);
 
-        $this->deleteJson("/api/conversations/{$conversation->id}")->assertOk();
+        $this->deleteJson("/api/conversations/{$conversation->id}")->assertNoContent();
 
         $this->assertDatabaseCount('participants', 0);
     }
@@ -404,7 +406,7 @@ class ConversationTest extends TestCase
             ], ['Accept' => 'application/json'])->assertCreated();
         }
 
-        $this->deleteJson("/api/conversations/{$conversation->id}")->assertOk();
+        $this->deleteJson("/api/conversations/{$conversation->id}")->assertNoContent();
 
         $this->assertSame([], Storage::disk('s3')->allFiles("attachments/{$conversation->id}"));
         $this->assertCount(2, Storage::disk('s3')->allFiles("attachments/{$other->id}"));

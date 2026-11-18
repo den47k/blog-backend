@@ -133,12 +133,12 @@ class MessageTest extends TestCase
             ->postJson($this->messagesUrl(), ['content' => 'hello there'])
             ->assertCreated()
             ->assertJsonStructure([
-                'message',
                 'data' => [
                     'message' => self::MESSAGE_KEYS,
-                    'conversation' => [...self::CONVERSATION_KEYS, 'lastMessage' => self::BARE_MESSAGE_KEYS],
+                    'conversation' => [...self::CONVERSATION_KEYS, 'lastMessage' => self::MESSAGE_KEYS],
                 ],
             ])
+            ->assertJsonMissingPath('message')
             ->assertJsonPath('data.message.content', 'hello there')
             ->assertJsonPath('data.message.conversationId', $this->conversation->id)
             ->assertJsonPath('data.message.sender.id', $this->author->id)
@@ -148,7 +148,7 @@ class MessageTest extends TestCase
 
         $messageId = $response->json('data.message.id');
 
-        $this->assertSame($messageId, $response->json('data.conversation.lastMessage.id'));
+        $this->assertSame($response->json('data.message'), $response->json('data.conversation.lastMessage'));
         $this->assertIsoDateTime($response->json('data.message.createdAt'));
         $this->assertDatabaseHas('messages', [
             'id' => $messageId,
@@ -181,7 +181,7 @@ class MessageTest extends TestCase
 
         $this->actingAsUser($this->recipient)
             ->postJson("/api/conversations/{$this->conversation->id}/mark-as-read")
-            ->assertOk();
+            ->assertNoContent();
 
         $this->travelTo(now()->addMilliseconds(200));
         $this->message($this->conversation, $this->author);
@@ -329,7 +329,9 @@ class MessageTest extends TestCase
         $this->actingAsUser($this->author)
             ->patchJson($this->messagesUrl($message), ['content' => 'after'])
             ->assertOk()
-            ->assertJsonStructure(['message', 'data' => self::MESSAGE_KEYS])
+            ->assertJsonStructure(['data' => self::MESSAGE_KEYS])
+            ->assertJsonMissingPath('message')
+            ->assertJsonPath('data.attachment', null)
             ->assertJsonPath('data.id', $message->id)
             ->assertJsonPath('data.content', 'after')
             ->assertJsonPath('data.conversationId', $this->conversation->id)
@@ -383,18 +385,23 @@ class MessageTest extends TestCase
             ->deleteJson($this->messagesUrl($last))
             ->assertOk()
             ->assertJsonStructure([
-                'message',
-                'deletedId',
-                'wasLastMessage',
-                'newLastMessage' => self::BARE_MESSAGE_KEYS,
+                'data' => [
+                    'conversationId',
+                    'deletedId',
+                    'wasLastMessage',
+                    'newLastMessage' => self::MESSAGE_KEYS,
+                ],
             ])
-            ->assertJsonPath('deletedId', $last->id)
-            ->assertJsonPath('wasLastMessage', true)
-            ->assertJsonPath('newLastMessage.id', $previous->id)
-            ->assertJsonPath('newLastMessage.content', 'previous')
-            ->assertJsonPath('newLastMessage.conversationId', $this->conversation->id);
+            ->assertJsonMissingPath('message')
+            ->assertJsonPath('data.conversationId', $this->conversation->id)
+            ->assertJsonPath('data.deletedId', $last->id)
+            ->assertJsonPath('data.wasLastMessage', true)
+            ->assertJsonPath('data.newLastMessage.id', $previous->id)
+            ->assertJsonPath('data.newLastMessage.content', 'previous')
+            ->assertJsonPath('data.newLastMessage.conversationId', $this->conversation->id)
+            ->assertJsonPath('data.newLastMessage.sender.id', $this->recipient->id);
 
-        $this->assertIsoDateTime($response->json('newLastMessage.createdAt'));
+        $this->assertIsoDateTime($response->json('data.newLastMessage.createdAt'));
         $this->assertDatabaseMissing('messages', ['id' => $last->id]);
         $this->assertSame($previous->id, $this->conversation->fresh()->last_message_id);
     }
@@ -407,9 +414,9 @@ class MessageTest extends TestCase
         $this->actingAsUser($this->author)
             ->deleteJson($this->messagesUrl($first))
             ->assertOk()
-            ->assertJsonPath('deletedId', $first->id)
-            ->assertJsonPath('wasLastMessage', false)
-            ->assertJsonPath('newLastMessage', null);
+            ->assertJsonPath('data.deletedId', $first->id)
+            ->assertJsonPath('data.wasLastMessage', false)
+            ->assertJsonPath('data.newLastMessage', null);
 
         $this->assertDatabaseMissing('messages', ['id' => $first->id]);
         $this->assertSame($last->id, $this->conversation->fresh()->last_message_id);
@@ -422,8 +429,8 @@ class MessageTest extends TestCase
         $this->actingAsUser($this->author)
             ->deleteJson($this->messagesUrl($only))
             ->assertOk()
-            ->assertJsonPath('wasLastMessage', true)
-            ->assertJsonPath('newLastMessage', null);
+            ->assertJsonPath('data.wasLastMessage', true)
+            ->assertJsonPath('data.newLastMessage', null);
 
         $this->assertDatabaseCount('messages', 0);
         $this->assertNull($this->conversation->fresh()->last_message_id);

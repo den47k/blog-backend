@@ -65,7 +65,7 @@ class MessageService
                     $this->participantRepository->markUnjoinedAsJoined($conversation);
 
                     if ($recipients->isNotEmpty()) {
-                        $conversation->load(['participants.user', 'lastMessage']);
+                        $conversation->load(['participants.user', 'lastMessage.user', 'lastMessage.attachment']);
 
                         foreach ($recipients as $recipient) {
                             event(new ConversationCreated($conversation, $recipient, hasUnread: true));

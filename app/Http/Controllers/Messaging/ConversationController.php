@@ -9,6 +9,7 @@ use App\Models\Conversation;
 use App\Services\Messaging\ConversationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
 
@@ -43,25 +44,24 @@ class ConversationController extends Controller
             $request->boolean('should_join_now'),
         );
 
-        return response()->json([
-            'message' => 'Conversation created successfully',
-            'conversation' => new ConversationResource($conversation, $request->user()),
-        ], 201);
+        return (new ConversationResource($conversation, $request->user()))
+            ->response()
+            ->setStatusCode(201);
     }
 
-    public function destroy(Request $request, Conversation $conversation): JsonResponse
+    public function destroy(Request $request, Conversation $conversation): Response
     {
         Gate::authorize('delete', $conversation);
         $this->conversationService->deleteConversation($conversation, $request->user());
 
-        return response()->json(['message' => 'Conversation deleted successfully']);
+        return response()->noContent();
     }
 
-    public function markAsRead(Request $request, Conversation $conversation): JsonResponse
+    public function markAsRead(Request $request, Conversation $conversation): Response
     {
         Gate::authorize('markAsRead', $conversation);
         $this->conversationService->markConversationAsRead($conversation, $request->user());
 
-        return response()->json(['message' => 'Conversation marked as read.']);
+        return response()->noContent();
     }
 }

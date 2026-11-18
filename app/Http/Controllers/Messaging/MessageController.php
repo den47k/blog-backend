@@ -41,7 +41,6 @@ class MessageController extends Controller
         );
 
         return response()->json([
-            'message' => 'Message sent successfully',
             'data' => [
                 'message' => new MessageResource($message->loadMissing(['user', 'attachment'])),
                 'conversation' => new ConversationResource($conversation, $request->user(), hasUnread: false),
@@ -49,7 +48,7 @@ class MessageController extends Controller
         ], 201);
     }
 
-    public function update(UpdateMessageRequest $request, Conversation $conversation, Message $message): JsonResponse
+    public function update(UpdateMessageRequest $request, Conversation $conversation, Message $message): MessageResource
     {
         Gate::authorize('update', $message);
 
@@ -58,10 +57,7 @@ class MessageController extends Controller
             $request->validated()
         );
 
-        return response()->json([
-            'message' => 'Message updated successfully',
-            'data' => new MessageResource($message->loadMissing(['user'])),
-        ]);
+        return new MessageResource($message->loadMissing(['user', 'attachment']));
     }
 
     public function delete(Request $request, Conversation $conversation, Message $message): JsonResponse
@@ -71,12 +67,14 @@ class MessageController extends Controller
         $deleted = $this->messageService->deleteMessage($conversation, $message);
 
         return response()->json([
-            'message' => 'Message deleted successfully',
-            'deletedId' => $deleted->id,
-            'wasLastMessage' => $deleted->wasLastMessage,
-            'newLastMessage' => $deleted->newLastMessage
-                ? new MessageResource($deleted->newLastMessage)
-                : null,
+            'data' => [
+                'conversationId' => $conversation->id,
+                'deletedId' => $deleted->id,
+                'wasLastMessage' => $deleted->wasLastMessage,
+                'newLastMessage' => $deleted->newLastMessage
+                    ? new MessageResource($deleted->newLastMessage)
+                    : null,
+            ],
         ]);
     }
 }
