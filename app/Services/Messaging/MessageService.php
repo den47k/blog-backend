@@ -2,10 +2,10 @@
 
 namespace App\Services\Messaging;
 
-use App\Events\Conversation\ConversationCreatedEvent;
-use App\Events\Message\MessageCreatedEvent;
-use App\Events\Message\MessageDeletedEvent;
-use App\Events\Message\MessageUpdatedEvent;
+use App\Events\Conversation\ConversationCreated;
+use App\Events\Message\MessageCreated;
+use App\Events\Message\MessageDeleted;
+use App\Events\Message\MessageUpdated;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
@@ -68,13 +68,13 @@ class MessageService
                         $conversation->load(['participants.user', 'lastMessage']);
 
                         foreach ($recipients as $recipient) {
-                            event(new ConversationCreatedEvent($conversation, $recipient, hasUnread: true));
+                            event(new ConversationCreated($conversation, $recipient, hasUnread: true));
                         }
-                        event(new ConversationCreatedEvent($conversation, $user, hasUnread: false));
+                        event(new ConversationCreated($conversation, $user, hasUnread: false));
                     }
                 }
 
-                broadcast(new MessageCreatedEvent(
+                broadcast(new MessageCreated(
                     $message->load('user', 'attachment'),
                     $participants->pluck('user')->all(),
                 ));
@@ -101,7 +101,7 @@ class MessageService
 
             $participants = $this->participantRepository->getUsers($message->conversation);
 
-            broadcast(new MessageUpdatedEvent($message->load('user', 'attachment'), $participants->all()));
+            broadcast(new MessageUpdated($message->load('user', 'attachment'), $participants->all()));
 
             return $message;
         });
@@ -131,7 +131,7 @@ class MessageService
             }
 
             foreach ($this->participantRepository->getUsers($conversation) as $participant) {
-                broadcast(new MessageDeletedEvent(
+                broadcast(new MessageDeleted(
                     $conversation,
                     $messageId,
                     $wasLastMessage,

@@ -2,7 +2,7 @@
 
 namespace App\Services\Messaging;
 
-use App\Events\Conversation\ConversationDeletedEvent;
+use App\Events\Conversation\ConversationDeleted;
 use App\Models\Conversation;
 use App\Models\User;
 use App\Repositories\Eloquent\ConversationRepository;
@@ -81,7 +81,7 @@ class ConversationService
             $this->conversationRepository->delete($conversation);
 
             $recipients = $this->userRepository->findManyByIds($recipientIds);
-            broadcast(new ConversationDeletedEvent($conversationId, $recipients->all()));
+            broadcast(new ConversationDeleted($conversationId, $recipients->all()));
         });
 
         $this->attachmentService->deleteForConversation($conversation->id);

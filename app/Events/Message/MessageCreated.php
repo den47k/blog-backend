@@ -11,7 +11,7 @@ use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class MessageUpdatedEvent implements ShouldBroadcastNow, ShouldDispatchAfterCommit
+class MessageCreated implements ShouldBroadcastNow, ShouldDispatchAfterCommit
 {
     use Dispatchable, SerializesModels;
 
@@ -27,7 +27,7 @@ class MessageUpdatedEvent implements ShouldBroadcastNow, ShouldDispatchAfterComm
 
     public function broadcastAs(): string
     {
-        return 'MessageUpdatedEvent';
+        return 'message.created';
     }
 
     public function broadcastWith(): array

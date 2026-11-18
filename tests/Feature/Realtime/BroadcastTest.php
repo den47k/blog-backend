@@ -80,7 +80,7 @@ class BroadcastTest extends TestCase
         $publication = $publications[0];
         $this->assertChannels($this->participantChannels(), $publication);
         $this->assertKeys(['event', 'data'], $publication['data']);
-        $this->assertSame('MessageCreatedEvent', $publication['data']['event']);
+        $this->assertSame('message.created', $publication['data']['event']);
         $this->assertKeys(['message'], $publication['data']['data']);
 
         $message = $publication['data']['data']['message'];
@@ -138,7 +138,7 @@ class BroadcastTest extends TestCase
             ], ['Accept' => 'application/json'])
             ->assertCreated();
 
-        $message = $this->centrifugoPublicationsOf('MessageCreatedEvent')[0]['data']['data']['message'];
+        $message = $this->centrifugoPublicationsOf('message.created')[0]['data']['data']['message'];
 
         $this->assertNull($message['content']);
         $this->assertKeys(self::ATTACHMENT_KEYS, $message['attachment']);
@@ -160,7 +160,7 @@ class BroadcastTest extends TestCase
 
         $publications = $this->centrifugoPublications();
         $this->assertSame(
-            ['ConversationCreated', 'ConversationCreated', 'MessageCreatedEvent'],
+            ['conversation.created', 'conversation.created', 'message.created'],
             array_map(fn (array $publication) => $publication['data']['event'], $publications),
         );
 
@@ -212,7 +212,7 @@ class BroadcastTest extends TestCase
             ->postJson("/api/conversations/{$this->conversation->id}/messages", ['content' => 'again'])
             ->assertCreated();
 
-        $this->assertSame([], $this->centrifugoPublicationsOf('ConversationCreated'));
+        $this->assertSame([], $this->centrifugoPublicationsOf('conversation.created'));
     }
 
     // ------------------------------------------------------- message updated
@@ -231,7 +231,7 @@ class BroadcastTest extends TestCase
         $publication = $publications[0];
         $this->assertChannels($this->participantChannels(), $publication);
         $this->assertKeys(['event', 'data'], $publication['data']);
-        $this->assertSame('MessageUpdatedEvent', $publication['data']['event']);
+        $this->assertSame('message.updated', $publication['data']['event']);
         $this->assertKeys(['message'], $publication['data']['data']);
 
         $payload = $publication['data']['data']['message'];
@@ -264,7 +264,7 @@ class BroadcastTest extends TestCase
         $this->assertCount(2, $publications);
         foreach ($publications as $publication) {
             $this->assertKeys(['event', 'data'], $publication['data']);
-            $this->assertSame('MessageDeletedEvent', $publication['data']['event']);
+            $this->assertSame('message.deleted', $publication['data']['event']);
         }
 
         $copies = $this->payloadsByChannel($publications);
@@ -299,7 +299,7 @@ class BroadcastTest extends TestCase
             ->deleteJson("/api/conversations/{$this->conversation->id}/messages/{$last->id}")
             ->assertOk();
 
-        $payload = $this->payloadsByChannel($this->centrifugoPublicationsOf('MessageDeletedEvent'))["user:{$this->recipient->id}"];
+        $payload = $this->payloadsByChannel($this->centrifugoPublicationsOf('message.deleted'))["user:{$this->recipient->id}"];
 
         $this->assertTrue($payload['wasLastMessage']);
         $this->assertFalse($payload['hasUnread']);
@@ -336,7 +336,7 @@ class BroadcastTest extends TestCase
             ->deleteJson("/api/conversations/{$this->conversation->id}/messages/{$only->id}")
             ->assertOk();
 
-        $copies = $this->payloadsByChannel($this->centrifugoPublicationsOf('MessageDeletedEvent'));
+        $copies = $this->payloadsByChannel($this->centrifugoPublicationsOf('message.deleted'));
         $this->assertEqualsCanonicalizing($this->participantChannels(), array_keys($copies));
 
         $payload = $copies["user:{$this->recipient->id}"];
@@ -360,7 +360,7 @@ class BroadcastTest extends TestCase
         $publication = $publications[0];
         $this->assertChannels($this->participantChannels(), $publication);
         $this->assertKeys(['event', 'data'], $publication['data']);
-        $this->assertSame('ConversationDeleted', $publication['data']['event']);
+        $this->assertSame('conversation.deleted', $publication['data']['event']);
         $this->assertSame(['id' => $this->conversation->id], $publication['data']['data']);
     }
 
@@ -415,7 +415,7 @@ class BroadcastTest extends TestCase
         $this->deleteJson("/api/conversations/{$this->conversation->id}/messages/{$messageId}")
             ->assertServerError();
 
-        $this->assertSame([], $this->centrifugoPublicationsOf('MessageDeletedEvent'));
+        $this->assertSame([], $this->centrifugoPublicationsOf('message.deleted'));
         $this->assertDatabaseHas('messages', ['id' => $messageId]);
         $this->assertSame($messageId, $this->conversation->fresh()->last_message_id);
         $this->assertCount(2, Storage::disk('s3')->allFiles());

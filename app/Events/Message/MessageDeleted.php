@@ -12,7 +12,7 @@ use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class MessageDeletedEvent implements ShouldBroadcastNow, ShouldDispatchAfterCommit
+class MessageDeleted implements ShouldBroadcastNow, ShouldDispatchAfterCommit
 {
     use Dispatchable, SerializesModels;
 
@@ -46,7 +46,7 @@ class MessageDeletedEvent implements ShouldBroadcastNow, ShouldDispatchAfterComm
 
     public function broadcastAs(): string
     {
-        return 'MessageDeletedEvent';
+        return 'message.deleted';
     }
 
     public function broadcastWith(): array

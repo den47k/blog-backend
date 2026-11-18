@@ -11,7 +11,7 @@ use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class ConversationCreatedEvent implements ShouldBroadcastNow, ShouldDispatchAfterCommit
+class ConversationCreated implements ShouldBroadcastNow, ShouldDispatchAfterCommit
 {
     use Dispatchable, SerializesModels;
 
@@ -30,7 +30,7 @@ class ConversationCreatedEvent implements ShouldBroadcastNow, ShouldDispatchAfte
 
     public function broadcastAs()
     {
-        return 'ConversationCreated';
+        return 'conversation.created';
     }
 
     public function broadcastWith()
