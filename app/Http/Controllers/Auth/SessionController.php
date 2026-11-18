@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Resources\User\AuthenticatedUserResource;
 use App\Http\Responses\AuthResponse;
 use App\Services\Auth\CredentialAuthenticator;
 use App\Services\Auth\DeviceService;
@@ -36,6 +37,11 @@ class SessionController extends Controller
         return AuthResponse::from(
             $this->deviceService->issueOrChallenge($user, $request->deviceName(), $request)
         );
+    }
+
+    public function me(Request $request): AuthenticatedUserResource
+    {
+        return new AuthenticatedUserResource($request->user());
     }
 
     public function logout(Request $request): JsonResponse

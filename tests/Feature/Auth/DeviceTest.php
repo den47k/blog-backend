@@ -4,17 +4,18 @@ namespace Tests\Feature\Auth;
 
 use App\Models\Device;
 use App\Models\User;
+use Tests\Concerns\AssertsApiContract;
 use Tests\Concerns\InteractsWithAuth;
 use Tests\TestCase;
 
 class DeviceTest extends TestCase
 {
-    use InteractsWithAuth;
+    use AssertsApiContract, InteractsWithAuth;
 
-    /** wisp-app/packages/domain/src/device.ts (+ is_current, which the client does not read yet) */
+    /** wisp-app/packages/domain/src/device.ts */
     private const DEVICE_KEYS = [
-        'id', 'device_name', 'client_type', 'platform', 'browser', 'ip_address',
-        'last_seen_at', 'last_seen_ip', 'is_current', 'trusted_at', 'created_at',
+        'id', 'deviceName', 'clientType', 'platform', 'browser', 'ipAddress',
+        'lastSeenAt', 'lastSeenIp', 'isCurrent', 'createdAt',
     ];
 
     public function test_index_lists_the_users_devices_and_marks_the_current_one(): void
@@ -32,10 +33,12 @@ class DeviceTest extends TestCase
 
         $devices = collect($response->json('data'))->keyBy('id');
 
-        $this->assertSame('Laptop', $devices[$laptop['device_id']]['device_name']);
-        $this->assertFalse($devices[$laptop['device_id']]['is_current']);
-        $this->assertSame('Phone', $devices[$phone['device_id']]['device_name']);
-        $this->assertTrue($devices[$phone['device_id']]['is_current']);
+        $this->assertIsoDateTime($devices[$phone['device_id']]['createdAt']);
+
+        $this->assertSame('Laptop', $devices[$laptop['device_id']]['deviceName']);
+        $this->assertFalse($devices[$laptop['device_id']]['isCurrent']);
+        $this->assertSame('Phone', $devices[$phone['device_id']]['deviceName']);
+        $this->assertTrue($devices[$phone['device_id']]['isCurrent']);
     }
 
     public function test_a_device_can_be_renamed(): void
@@ -47,7 +50,7 @@ class DeviceTest extends TestCase
             ->patchJson("/api/auth/devices/{$session['device_id']}", ['device_name' => 'New name'])
             ->assertOk()
             ->assertJsonStructure(['data' => self::DEVICE_KEYS])
-            ->assertJsonPath('data.device_name', 'New name');
+            ->assertJsonPath('data.deviceName', 'New name');
 
         $this->assertDatabaseHas('devices', ['id' => $session['device_id'], 'device_name' => 'New name']);
     }
@@ -76,8 +79,8 @@ class DeviceTest extends TestCase
         $this->assertDatabaseMissing('devices', ['id' => $phone['device_id']]);
         $this->assertSame(1, $user->tokens()->count());
 
-        $this->withBearer($phone['token'])->getJson('/api/user')->assertUnauthorized();
-        $this->withBearer($laptop['token'])->getJson('/api/user')->assertOk();
+        $this->withBearer($phone['token'])->getJson('/api/auth/me')->assertUnauthorized();
+        $this->withBearer($laptop['token'])->getJson('/api/auth/me')->assertOk();
     }
 
     public function test_another_users_device_cannot_be_renamed_or_revoked(): void

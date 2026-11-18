@@ -115,7 +115,7 @@ class ConversationTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.hasUnread', true);
 
-        $this->postJson("/api/conversations/{$conversation->id}/mark-as-read")
+        $this->postJson("/api/conversations/{$conversation->id}/read")
             ->assertNoContent();
 
         $this->getJson('/api/conversations')
@@ -131,7 +131,7 @@ class ConversationTest extends TestCase
         $this->message($conversation, $other, ['created_at' => now()->subMinute()]);
 
         $this->actingAsUser($other)
-            ->postJson("/api/conversations/{$conversation->id}/mark-as-read")
+            ->postJson("/api/conversations/{$conversation->id}/read")
             ->assertNoContent();
 
         $this->actingAsUser($user)
@@ -149,7 +149,7 @@ class ConversationTest extends TestCase
         $this->freezeTime();
 
         $this->actingAsUser($user)
-            ->postJson("/api/conversations/{$conversation->id}/mark-as-read")
+            ->postJson("/api/conversations/{$conversation->id}/read")
             ->assertNoContent();
 
         $participants = $conversation->participants()->get()->keyBy('user_id');
@@ -163,7 +163,7 @@ class ConversationTest extends TestCase
         $conversation = $this->privateConversation(User::factory()->create(), User::factory()->create());
 
         $this->actingAsUser(User::factory()->create())
-            ->postJson("/api/conversations/{$conversation->id}/mark-as-read")
+            ->postJson("/api/conversations/{$conversation->id}/read")
             ->assertForbidden();
     }
 
@@ -385,7 +385,7 @@ class ConversationTest extends TestCase
         $this->message($conversation, $other);
 
         $this->actingAsUser($user);
-        $this->postJson("/api/conversations/{$conversation->id}/mark-as-read")->assertNoContent();
+        $this->postJson("/api/conversations/{$conversation->id}/read")->assertNoContent();
         $this->assertDatabaseCount('participants', 2);
 
         $this->deleteJson("/api/conversations/{$conversation->id}")->assertNoContent();

@@ -17,10 +17,10 @@ class RateLimitTest extends TestCase
         ];
 
         for ($i = 0; $i < 5; $i++) {
-            $this->postJson('/api/reset-password', $payload)->assertUnprocessable();
+            $this->postJson('/api/auth/password/reset', $payload)->assertUnprocessable();
         }
 
-        $this->postJson('/api/reset-password', $payload)->assertTooManyRequests();
+        $this->postJson('/api/auth/password/reset', $payload)->assertTooManyRequests();
     }
 
     public function test_oauth_endpoints_are_limited_to_20_requests_a_minute(): void

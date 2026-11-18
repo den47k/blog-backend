@@ -180,7 +180,7 @@ class MessageTest extends TestCase
         $this->travelTo(now()->startOfSecond()->addMilliseconds(100));
 
         $this->actingAsUser($this->recipient)
-            ->postJson("/api/conversations/{$this->conversation->id}/mark-as-read")
+            ->postJson("/api/conversations/{$this->conversation->id}/read")
             ->assertNoContent();
 
         $this->travelTo(now()->addMilliseconds(200));

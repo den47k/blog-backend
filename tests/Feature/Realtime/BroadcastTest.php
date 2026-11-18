@@ -292,7 +292,7 @@ class BroadcastTest extends TestCase
         $last = $this->message($this->conversation, $this->author, ['created_at' => now()->subMinutes(2)]);
 
         $this->actingAsUser($this->recipient)
-            ->postJson("/api/conversations/{$this->conversation->id}/mark-as-read")
+            ->postJson("/api/conversations/{$this->conversation->id}/read")
             ->assertNoContent();
 
         $this->actingAsUser($this->author)
@@ -431,7 +431,7 @@ class BroadcastTest extends TestCase
         $this->actingAsUser($this->recipient);
         $this->getJson('/api/conversations')->assertOk();
         $this->getJson("{$base}/messages")->assertOk();
-        $this->postJson("{$base}/mark-as-read")->assertNoContent();
+        $this->postJson("{$base}/read")->assertNoContent();
         $this->postJson("{$base}/messages", [])->assertUnprocessable();
         $this->patchJson("{$base}/messages/{$message->id}", ['content' => 'nope'])->assertForbidden();
         $this->deleteJson("{$base}/messages/{$message->id}")->assertForbidden();

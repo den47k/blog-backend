@@ -31,7 +31,7 @@ class TokenAbilityTest extends TestCase
         $user = User::factory()->create();
         $this->withBearer($this->tokenFor($user, [$ability]));
 
-        $this->getJson('/api/user')->assertForbidden();
+        $this->getJson('/api/auth/me')->assertForbidden();
         $this->getJson('/api/conversations')->assertForbidden();
         $this->getJson('/api/users/search?query=someone')->assertForbidden();
         $this->getJson('/api/auth/devices')->assertForbidden();
@@ -116,7 +116,7 @@ class TokenAbilityTest extends TestCase
 
     public function test_requests_without_a_token_are_unauthenticated(): void
     {
-        $this->getJson('/api/user')->assertUnauthorized()->assertExactJson(['message' => 'Unauthenticated.']);
+        $this->getJson('/api/auth/me')->assertUnauthorized()->assertExactJson(['message' => 'Unauthenticated.']);
         $this->getJson('/api/conversations')->assertUnauthorized();
         $this->postJson('/api/auth/register/verify-email')->assertUnauthorized();
         $this->postJson('/api/auth/2fa/verify')->assertUnauthorized();
@@ -124,6 +124,6 @@ class TokenAbilityTest extends TestCase
 
     public function test_a_garbage_token_is_unauthenticated(): void
     {
-        $this->withBearer('not-a-real-token')->getJson('/api/user')->assertUnauthorized();
+        $this->withBearer('not-a-real-token')->getJson('/api/auth/me')->assertUnauthorized();
     }
 }
