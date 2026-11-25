@@ -63,7 +63,6 @@ class UserRepository
         return User::where('tag', $tag)->exists();
     }
 
-    /** Ids of users still in the given registration status since before the cutoff. */
     public function pendingOlderThan(UserStatus $status, DateTimeInterface $cutoff): Collection
     {
         return User::where('status', $status)
@@ -71,9 +70,6 @@ class UserRepository
             ->pluck('id');
     }
 
-    /**
-     * @param  iterable<string>  $ids
-     */
     public function deleteMany(iterable $ids): int
     {
         return User::whereIn('id', $ids)->delete();

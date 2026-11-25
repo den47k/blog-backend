@@ -43,7 +43,7 @@ class ConversationCreated implements ShouldBroadcastNow, ShouldDispatchAfterComm
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('user.' . $this->recipient->id),
+            new PrivateChannel('user.'.$this->recipient->id),
         ];
     }
 }

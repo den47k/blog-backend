@@ -37,10 +37,6 @@ class ParticipantRepository
         $participant->update(['joined_at' => now()]);
     }
 
-    /**
-     * Written as a formatted string: the model's date format would cut the
-     * microseconds the read-state comparison relies on.
-     */
     public function markRead(Conversation $conversation, string $userId, ?CarbonInterface $at = null): void
     {
         $conversation->participants()

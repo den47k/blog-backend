@@ -30,10 +30,9 @@ class AppServiceProvider extends ServiceProvider
 
         $this->configureRateLimiters();
 
-        ResetPassword::createUrlUsing(fn($user, string $token) =>
-            rtrim(config('app.frontend_url'), '/')
-            . '/reset-password?token=' . $token
-            . '&email=' . urlencode($user->getEmailForPasswordReset()));
+        ResetPassword::createUrlUsing(fn ($user, string $token) => rtrim(config('app.frontend_url'), '/')
+            .'/reset-password?token='.$token
+            .'&email='.urlencode($user->getEmailForPasswordReset()));
     }
 
     private function configureRateLimiters(): void
@@ -41,30 +40,30 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('auth-burst', function (Request $request) {
             $email = strtolower((string) $request->input('email', ''));
 
-            return Limit::perMinute(5)->by($request->ip() . '|' . $email);
+            return Limit::perMinute(5)->by($request->ip().'|'.$email);
         });
 
         RateLimiter::for('auth-otp', function (Request $request) {
             $key = $request->user()?->email ?? $request->ip();
 
-            return Limit::perHour(10)->by('otp:' . $key);
+            return Limit::perHour(10)->by('otp:'.$key);
         });
 
         RateLimiter::for('auth-2fa-verify', function (Request $request) {
             $tokenId = $request->user()?->currentAccessToken()?->id ?? $request->ip();
 
-            return Limit::perMinutes(15, 10)->by('2fa:' . $tokenId);
+            return Limit::perMinutes(15, 10)->by('2fa:'.$tokenId);
         });
 
-        RateLimiter::for('auth-oauth', fn (Request $request) => Limit::perMinute(20)->by('oauth:' . $request->ip()));
+        RateLimiter::for('auth-oauth', fn (Request $request) => Limit::perMinute(20)->by('oauth:'.$request->ip()));
 
         RateLimiter::for('auth-password-confirm', fn (Request $request) => Limit::perMinute(5)
-            ->by('password-confirm:' . ($request->user()?->id ?? $request->ip())));
+            ->by('password-confirm:'.($request->user()?->id ?? $request->ip())));
 
         RateLimiter::for('messages', fn (Request $request) => Limit::perMinute(60)
-            ->by('messages:' . ($request->user()?->id ?? $request->ip())));
+            ->by('messages:'.($request->user()?->id ?? $request->ip())));
 
         RateLimiter::for('search', fn (Request $request) => Limit::perMinute(30)
-            ->by('search:' . ($request->user()?->id ?? $request->ip())));
+            ->by('search:'.($request->user()?->id ?? $request->ip())));
     }
 }

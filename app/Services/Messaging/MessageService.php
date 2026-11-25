@@ -32,8 +32,6 @@ class MessageService
 
     public function storeMessage(Conversation $conversation, User $user, array $data): Message
     {
-        // The id is generated up front so the file can be uploaded to its final
-        // path before the transaction: the upload must not run under the row lock.
         $messageId = (new Message)->newUniqueId();
         $fileData = isset($data['attachment'])
             ? $this->attachmentService->upload($conversation->id, $messageId, $data['attachment'])
@@ -52,8 +50,6 @@ class MessageService
                 $this->conversationRepository->updateLastMessage($conversation, $message->id);
                 $conversation->setRelation('lastMessage', $message);
 
-                // The message's own timestamp, not now(): the sender's read mark
-                // must never fall behind the message it was written for.
                 $this->participantRepository->markRead($conversation, $user->id, $message->created_at);
 
                 $conversation->loadMissing('participants.user');

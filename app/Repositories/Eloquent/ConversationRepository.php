@@ -27,8 +27,8 @@ class ConversationRepository
     {
         return $this->selectUnreadFor(Conversation::query(), $initiator->id)
             ->where('conversation_type', 'private')
-            ->whereHas('participants', fn($q) => $q->where('user_id', $initiator->id))
-            ->whereHas('participants', fn($q) => $q->where('user_id', $other->id))
+            ->whereHas('participants', fn ($q) => $q->where('user_id', $initiator->id))
+            ->whereHas('participants', fn ($q) => $q->where('user_id', $other->id))
             ->has('participants', '=', 2)
             ->with(['lastMessage.user:id,name,tag,avatar', 'lastMessage.attachment'])
             ->first();
@@ -79,7 +79,7 @@ class ConversationRepository
     {
         return $query
             ->select('conversations.*')
-            ->selectRaw('exists (' . $this->unreadFor($userId)->toSql() . ') as has_unread', [$userId]);
+            ->selectRaw('exists ('.$this->unreadFor($userId)->toSql().') as has_unread', [$userId]);
     }
 
     private function unreadFor(string $userId): QueryBuilder
@@ -89,7 +89,7 @@ class ConversationRepository
             ->selectRaw('1')
             ->whereColumn('messages.id', 'conversations.last_message_id')
             ->where('read_state.user_id', $userId)
-            ->where(fn(QueryBuilder $q) => $q
+            ->where(fn (QueryBuilder $q) => $q
                 ->whereNull('read_state.last_read_at')
                 ->orWhereColumn('messages.created_at', '>', 'read_state.last_read_at'));
     }

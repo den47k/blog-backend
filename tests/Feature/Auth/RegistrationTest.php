@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Enums\TokenAbility;
 use App\Enums\UserStatus;
 use App\Models\Device;
 use App\Models\User;
@@ -220,7 +221,7 @@ class RegistrationTest extends TestCase
     {
         $user = User::factory()->pendingProfile()->create();
 
-        $this->withBearer($this->tokenFor($user, [\App\Enums\TokenAbility::RegisterPending]))
+        $this->withBearer($this->tokenFor($user, [TokenAbility::RegisterPending]))
             ->postJson('/api/auth/register/resend-otp')
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['status']);
