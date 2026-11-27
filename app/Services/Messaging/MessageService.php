@@ -47,7 +47,7 @@ class MessageService
                     $this->messageRepository->addAttachment($message, $fileData);
                 }
 
-                $this->conversationRepository->updateLastMessage($conversation, $message->id);
+                $this->conversationRepository->updateLastMessage($conversation, $message);
                 $conversation->setRelation('lastMessage', $message);
 
                 $this->participantRepository->markRead($conversation, $user->id, $message->created_at);
@@ -117,7 +117,11 @@ class MessageService
             if ($wasLastMessage) {
                 $newLastMessage = $this->messageRepository->findLatestExcluding($conversation, $message->id);
 
-                $this->conversationRepository->updateLastMessage($conversation, $newLastMessage?->id);
+                $this->conversationRepository->updateLastMessage($conversation, $newLastMessage);
+
+                if (! $newLastMessage) {
+                    $this->participantRepository->markAllUnjoined($conversation);
+                }
             }
 
             $this->messageRepository->delete($message);

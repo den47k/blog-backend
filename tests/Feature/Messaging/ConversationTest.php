@@ -49,6 +49,26 @@ class ConversationTest extends TestCase
         );
     }
 
+    public function test_index_paginates_with_a_cursor_without_gaps_or_duplicates(): void
+    {
+        $user = User::factory()->create();
+        $ids = [];
+        for ($i = 0; $i < 25; $i++) {
+            $conversation = $this->privateConversation($user, User::factory()->create());
+            Conversation::whereKey($conversation->id)->update(['updated_at' => now()->subMinutes($i)]);
+            $ids[] = $conversation->id;
+        }
+
+        $first = $this->actingAsUser($user)->getJson('/api/conversations')->assertOk();
+        $cursor = $first->json('meta.next_cursor');
+        $this->assertNotNull($cursor);
+
+        $second = $this->getJson('/api/conversations?cursor='.urlencode($cursor))->assertOk();
+
+        $this->assertNull($second->json('meta.next_cursor'));
+        $this->assertSame($ids, [...$first->json('data.*.id'), ...$second->json('data.*.id')]);
+    }
+
     public function test_index_matches_the_client_contract(): void
     {
         $user = User::factory()->create();

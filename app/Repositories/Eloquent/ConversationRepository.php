@@ -3,6 +3,7 @@
 namespace App\Repositories\Eloquent;
 
 use App\Models\Conversation;
+use App\Models\Message;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -18,8 +19,8 @@ class ConversationRepository
                 'lastMessage.user:id,name,tag,avatar',
                 'lastMessage.attachment',
             ])
-            ->orderByDesc('updated_at')
-            ->orderByDesc('id')
+            ->orderByDesc('conversations.updated_at')
+            ->orderByDesc('conversations.id')
             ->cursorPaginate($perPage);
     }
 
@@ -65,9 +66,14 @@ class ConversationRepository
         return Conversation::create($data);
     }
 
-    public function updateLastMessage(Conversation $conversation, ?string $messageId): void
+    public function updateLastMessage(Conversation $conversation, ?Message $message): void
     {
-        $conversation->update(['last_message_id' => $messageId]);
+        $conversation->timestamps = false;
+        $conversation->forceFill([
+            'last_message_id' => $message?->id,
+            'updated_at' => $message?->created_at ?? $conversation->created_at,
+        ])->save();
+        $conversation->timestamps = true;
     }
 
     public function delete(Conversation $conversation): void

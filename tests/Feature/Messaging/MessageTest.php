@@ -406,6 +406,36 @@ class MessageTest extends TestCase
         $this->assertSame($previous->id, $this->conversation->fresh()->last_message_id);
     }
 
+    public function test_deleting_the_last_message_moves_the_conversation_back_to_the_previous_activity(): void
+    {
+        $previous = $this->message($this->conversation, $this->recipient, [
+            'created_at' => now()->subDays(3),
+        ]);
+        $last = $this->message($this->conversation, $this->author);
+
+        $this->actingAsUser($this->author)
+            ->deleteJson($this->messagesUrl($last))
+            ->assertOk();
+
+        $this->assertSame(
+            $previous->created_at->startOfSecond()->toISOString(),
+            $this->conversation->fresh()->updated_at->toISOString(),
+        );
+    }
+
+    public function test_deleting_the_only_message_moves_the_conversation_back_to_its_creation(): void
+    {
+        Conversation::whereKey($this->conversation->id)->update(['created_at' => now()->subDays(5)]);
+        $only = $this->message($this->conversation, $this->author);
+
+        $this->actingAsUser($this->author)
+            ->deleteJson($this->messagesUrl($only))
+            ->assertOk();
+
+        $conversation = $this->conversation->fresh();
+        $this->assertSame($conversation->created_at->toISOString(), $conversation->updated_at->toISOString());
+    }
+
     public function test_deleting_a_non_last_message_keeps_the_last_message(): void
     {
         $first = $this->message($this->conversation, $this->author, ['created_at' => now()->subMinutes(2)]);
@@ -434,10 +464,53 @@ class MessageTest extends TestCase
 
         $this->assertDatabaseCount('messages', 0);
         $this->assertNull($this->conversation->fresh()->last_message_id);
+    }
 
-        $this->getJson('/api/conversations')
+    public function test_deleting_the_only_message_hides_the_conversation_from_both_participants(): void
+    {
+        $only = $this->message($this->conversation, $this->author);
+
+        $this->actingAsUser($this->author)
+            ->deleteJson($this->messagesUrl($only))
+            ->assertOk();
+
+        $this->assertSame(
+            0,
+            $this->conversation->participants()->whereNotNull('joined_at')->count(),
+        );
+
+        $this->getJson('/api/conversations')->assertOk()->assertJsonCount(0, 'data');
+        $this->actingAsUser($this->recipient)
+            ->getJson('/api/conversations')
             ->assertOk()
-            ->assertJsonPath('data.0.lastMessage', null);
+            ->assertJsonCount(0, 'data');
+    }
+
+    public function test_a_new_message_shows_a_hidden_conversation_again(): void
+    {
+        $only = $this->message($this->conversation, $this->author);
+        $this->actingAsUser($this->author)->deleteJson($this->messagesUrl($only))->assertOk();
+
+        $this->actingAsUser($this->recipient)
+            ->postJson($this->messagesUrl(), ['content' => 'back again'])
+            ->assertCreated();
+
+        $this->actingAsUser($this->author)
+            ->getJson('/api/conversations')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $this->conversation->id)
+            ->assertJsonPath('data.0.lastMessage.content', 'back again');
+    }
+
+    public function test_deleting_a_message_keeps_the_conversation_visible_while_others_remain(): void
+    {
+        $this->message($this->conversation, $this->recipient, ['created_at' => now()->subMinute()]);
+        $last = $this->message($this->conversation, $this->author);
+
+        $this->actingAsUser($this->author)->deleteJson($this->messagesUrl($last))->assertOk();
+
+        $this->getJson('/api/conversations')->assertOk()->assertJsonCount(1, 'data');
     }
 
     public function test_deleting_a_message_removes_its_attachment_files(): void

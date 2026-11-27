@@ -58,6 +58,11 @@ class ParticipantRepository
             ->pluck('user');
     }
 
+    public function markAllUnjoined(Conversation $conversation): void
+    {
+        $conversation->participants()->update(['joined_at' => null]);
+    }
+
     public function markUnjoinedAsJoined(Conversation $conversation): void
     {
         $conversation->participants()
