@@ -31,7 +31,7 @@ class ConversationService
         $targetUser = $this->userRepository->findByTag($tag);
         $conversation = $this->conversationRepository->findExistingPrivate($user, $targetUser);
 
-        if (! $conversation) {
+        if (! $conversation || ! $this->participantRepository->find($conversation, $user->id)?->joined_at) {
             throw new ModelNotFoundException('Conversation not found');
         }
 

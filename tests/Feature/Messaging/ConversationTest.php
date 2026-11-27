@@ -220,6 +220,21 @@ class ConversationTest extends TestCase
             ->assertJsonPath('data.userTag', $other->tag);
     }
 
+    public function test_show_returns_404_for_a_conversation_the_user_has_not_joined_yet(): void
+    {
+        $initiator = User::factory()->create();
+        $recipient = User::factory()->create();
+        $this->privateConversation($initiator, $recipient, joined: false);
+
+        $this->actingAsUser($recipient)
+            ->getJson("/api/conversations/private/{$initiator->tag}")
+            ->assertNotFound();
+
+        $this->actingAsUser($initiator)
+            ->getJson("/api/conversations/private/{$recipient->tag}")
+            ->assertNotFound();
+    }
+
     public function test_show_returns_404_when_no_conversation_exists_with_that_user(): void
     {
         $other = User::factory()->create();
