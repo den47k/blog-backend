@@ -364,7 +364,7 @@ class BroadcastTest extends TestCase
         $this->assertSame(['id' => $this->conversation->id], $publication['data']['data']);
     }
 
-    public function test_deleting_a_conversation_nobody_else_joined_publishes_only_to_the_actor(): void
+    public function test_deleting_a_conversation_nobody_joined_yet_still_publishes_to_both_participants(): void
     {
         $other = User::factory()->create();
         $conversation = $this->privateConversation($this->author, $other, joined: false);
@@ -375,7 +375,10 @@ class BroadcastTest extends TestCase
 
         $publications = $this->centrifugoPublications();
         $this->assertCount(1, $publications);
-        $this->assertSame(["user:{$this->author->id}"], $publications[0]['channels']);
+        $this->assertEqualsCanonicalizing(
+            ["user:{$this->author->id}", "user:{$other->id}"],
+            $publications[0]['channels'],
+        );
         $this->assertSame(['id' => $conversation->id], $publications[0]['data']['data']);
     }
 

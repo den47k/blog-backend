@@ -52,7 +52,7 @@ class ConversationController extends Controller
     public function destroy(Request $request, Conversation $conversation): Response
     {
         Gate::authorize('delete', $conversation);
-        $this->conversationService->deleteConversation($conversation, $request->user());
+        $this->conversationService->deleteConversation($conversation);
 
         return response()->noContent();
     }
