@@ -38,7 +38,7 @@ class MessageAttachment extends Model
                 $generator = app(StorageUrlGenerator::class);
 
                 if (! empty($fileData['original'])) {
-                    $urls['original'] = $generator->url($fileData['original']);
+                    $urls['original'] = $generator->url($fileData['original'], $fileData['original_name'] ?? null);
                 }
                 if (! empty($fileData['thumbnail'])) {
                     $urls['thumbnail'] = $generator->url($fileData['thumbnail']);

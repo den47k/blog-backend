@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Message;
 
+use App\Models\Message;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateMessageRequest extends FormRequest
 {
@@ -14,7 +16,16 @@ class UpdateMessageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'content' => ['required', 'string', 'max:5000'],
+            'content' => [
+                'nullable',
+                Rule::requiredIf(function () {
+                    $message = $this->route('message');
+
+                    return ! ($message instanceof Message && $message->attachment()->exists());
+                }),
+                'string',
+                'max:5000',
+            ],
         ];
     }
 }

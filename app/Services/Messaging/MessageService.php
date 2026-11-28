@@ -92,7 +92,7 @@ class MessageService
     {
         return DB::transaction(function () use ($message, $data) {
             $this->messageRepository->update($message, [
-                'content' => $data['content'],
+                'content' => $data['content'] ?? null,
             ]);
 
             $participants = $this->participantRepository->getUsers($message->conversation);

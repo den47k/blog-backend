@@ -241,18 +241,27 @@ class MessageTest extends TestCase
             ->assertCreated();
     }
 
-    public function test_store_rejects_content_and_attachment_together(): void
+    public function test_store_accepts_an_attachment_with_a_caption(): void
     {
         $this->actingAsUser($this->author)
             ->post($this->messagesUrl(), [
                 'content' => 'caption',
                 'attachment' => UploadedFile::fake()->image('photo.jpg'),
             ], ['Accept' => 'application/json'])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['content', 'attachment']);
+            ->assertCreated()
+            ->assertJsonPath('data.message.content', 'caption')
+            ->assertJsonPath('data.message.attachment.data.original_name', 'photo.jpg');
+    }
 
-        $this->assertDatabaseCount('messages', 0);
-        $this->assertSame([], Storage::disk('s3')->allFiles());
+    public function test_store_treats_an_empty_caption_as_no_caption(): void
+    {
+        $this->actingAsUser($this->author)
+            ->post($this->messagesUrl(), [
+                'content' => '',
+                'attachment' => UploadedFile::fake()->image('photo.jpg'),
+            ], ['Accept' => 'application/json'])
+            ->assertCreated()
+            ->assertJsonPath('data.message.content', null);
     }
 
     public function test_store_is_forbidden_for_a_non_participant(): void
@@ -296,7 +305,7 @@ class MessageTest extends TestCase
         [$width, $height] = getimagesizefromstring(Storage::disk('s3')->get($data['thumbnail']));
         $this->assertSame([300, 225], [$width, $height]);
 
-        $this->assertSame(app(StorageUrlGenerator::class)->url($data['original']), $urls['original']);
+        $this->assertSame(app(StorageUrlGenerator::class)->url($data['original'], 'photo.jpg'), $urls['original']);
         $this->assertSame(app(StorageUrlGenerator::class)->url($data['thumbnail']), $urls['thumbnail']);
 
         $this->assertDatabaseHas('message_attachments', ['message_id' => $messageId]);
@@ -367,6 +376,26 @@ class MessageTest extends TestCase
             ->assertJsonValidationErrors('content');
 
         $this->assertDatabaseHas('messages', ['id' => $message->id, 'content' => 'before']);
+    }
+
+    public function test_the_caption_of_an_attachment_can_be_removed(): void
+    {
+        $messageId = $this->actingAsUser($this->author)
+            ->post($this->messagesUrl(), [
+                'content' => 'caption',
+                'attachment' => UploadedFile::fake()->image('photo.jpg'),
+            ], ['Accept' => 'application/json'])
+            ->json('data.message.id');
+        $message = Message::findOrFail($messageId);
+
+        $this->patchJson($this->messagesUrl($message), ['content' => ''])
+            ->assertOk()
+            ->assertJsonPath('data.content', null)
+            ->assertJsonPath('data.attachment.data.original_name', 'photo.jpg');
+
+        $this->patchJson($this->messagesUrl($message), [])
+            ->assertOk()
+            ->assertJsonPath('data.content', null);
     }
 
     // --------------------------------------------------------------- delete

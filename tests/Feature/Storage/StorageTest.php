@@ -108,7 +108,7 @@ class StorageTest extends TestCase
         $this->get($urls['original'])
             ->assertOk()
             ->assertHeader('Content-Type', 'image/jpeg')
-            ->assertHeader('Content-Disposition', 'inline')
+            ->assertHeader('Content-Disposition', 'inline; filename=photo.jpg')
             ->assertHeader('X-Content-Type-Options', 'nosniff');
     }
 
@@ -120,10 +120,45 @@ class StorageTest extends TestCase
 
         $response = $this->get($urls['original'])
             ->assertOk()
-            ->assertHeader('Content-Disposition', 'attachment')
+            ->assertHeader('Content-Disposition', 'attachment; filename=page.html')
             ->assertHeader('X-Content-Type-Options', 'nosniff');
 
         $this->assertStringContainsString('alert(1)', $response->streamedContent());
+    }
+
+    public function test_attachments_download_under_their_original_name(): void
+    {
+        $urls = $this->sendAttachment(UploadedFile::fake()->createWithContent('report.pdf', '%PDF-1.4'));
+
+        $this->get($urls['original'])
+            ->assertOk()
+            ->assertHeader('Content-Disposition', 'attachment; filename=report.pdf');
+    }
+
+    public function test_images_keep_their_original_name_when_shown_inline(): void
+    {
+        $urls = $this->sendAttachment(UploadedFile::fake()->image('holiday.jpg', 640, 480));
+
+        $this->get($urls['original'])->assertHeader('Content-Disposition', 'inline; filename=holiday.jpg');
+        $this->get($urls['thumbnail'])->assertHeader('Content-Disposition', 'inline');
+    }
+
+    public function test_non_ascii_and_unsafe_names_are_encoded(): void
+    {
+        $urls = $this->sendAttachment(UploadedFile::fake()->createWithContent('звіт/2026 "Q4".txt', 'text'));
+
+        $header = $this->get($urls['original'])->assertOk()->headers->get('Content-Disposition');
+
+        $this->assertStringStartsWith('attachment; filename=', $header);
+        $this->assertStringContainsString("filename*=utf-8''", $header);
+        $this->assertStringNotContainsString('/', explode("filename*=utf-8''", $header)[0]);
+    }
+
+    public function test_the_download_name_cannot_be_changed(): void
+    {
+        $urls = $this->sendAttachment(UploadedFile::fake()->createWithContent('report.pdf', '%PDF-1.4'));
+
+        $this->getJson(str_replace('name=report.pdf', 'name=evil.html', $urls['original']))->assertForbidden();
     }
 
     public function test_signed_avatar_urls_are_readable(): void
