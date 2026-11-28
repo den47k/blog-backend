@@ -7,6 +7,7 @@ use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Intervention\Image\Drivers\Imagick\Driver;
 use Intervention\Image\ImageManager;
 
@@ -26,23 +27,24 @@ class AvatarService
     public function store(UploadedFile $file, string $userId): array
     {
         $path = "avatars/{$userId}";
+        $version = Str::lower(Str::random(12));
 
         $originalPath = $this->disk->putFile($path, $file);
 
         $medium = $this->imageManager->read($file->getRealPath())
             ->cover(300, 300)
             ->toJpeg();
-        $this->disk->put("{$path}/medium.jpg", $medium->toString());
+        $this->disk->put("{$path}/{$version}-medium.jpg", $medium->toString());
 
         $small = $this->imageManager->read($file->getRealPath())
             ->cover(100, 100)
             ->toJpeg();
-        $this->disk->put("{$path}/small.jpg", $small->toString());
+        $this->disk->put("{$path}/{$version}-small.jpg", $small->toString());
 
         return [
             'original' => $originalPath,
-            'medium' => "{$path}/medium.jpg",
-            'small' => "{$path}/small.jpg",
+            'medium' => "{$path}/{$version}-medium.jpg",
+            'small' => "{$path}/{$version}-small.jpg",
         ];
     }
 

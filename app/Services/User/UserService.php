@@ -43,7 +43,6 @@ class UserService
 
     private function replaceAvatar(User $user, UploadedFile $file): void
     {
-        // Old files go first: the resized variants reuse the same paths.
         $this->removeAvatar($user);
 
         $this->userRepository->setAvatar($user, $this->avatarService->store($file, $user->id));

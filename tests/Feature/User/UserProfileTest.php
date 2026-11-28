@@ -89,6 +89,19 @@ class UserProfileTest extends TestCase
         );
     }
 
+    public function test_a_new_avatar_gets_new_urls(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAsUser($user);
+
+        $first = $this->uploadAvatar($user, UploadedFile::fake()->image('first.png', 400, 400))->json('avatar');
+        $second = $this->uploadAvatar($user, UploadedFile::fake()->image('second.png', 400, 400))->json('avatar');
+
+        foreach (['original', 'medium', 'small'] as $size) {
+            $this->assertNotSame($first[$size], $second[$size]);
+        }
+    }
+
     public function test_avatar_must_be_an_image(): void
     {
         $user = User::factory()->create();
