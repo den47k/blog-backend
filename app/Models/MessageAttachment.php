@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Storage\StorageUrlGenerator;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -34,12 +35,13 @@ class MessageAttachment extends Model
             get: function () {
                 $urls = [];
                 $fileData = $this->file_data;
+                $generator = app(StorageUrlGenerator::class);
 
                 if (! empty($fileData['original'])) {
-                    $urls['original'] = route('api.storage', ['path' => $fileData['original']]);
+                    $urls['original'] = $generator->url($fileData['original']);
                 }
                 if (! empty($fileData['thumbnail'])) {
-                    $urls['thumbnail'] = route('api.storage', ['path' => $fileData['thumbnail']]);
+                    $urls['thumbnail'] = $generator->url($fileData['thumbnail']);
                 }
 
                 return $urls;

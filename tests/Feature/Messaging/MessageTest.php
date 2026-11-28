@@ -5,6 +5,7 @@ namespace Tests\Feature\Messaging;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
+use App\Services\Storage\StorageUrlGenerator;
 use Illuminate\Database\Eloquent\Factories\Sequence;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -295,8 +296,8 @@ class MessageTest extends TestCase
         [$width, $height] = getimagesizefromstring(Storage::disk('s3')->get($data['thumbnail']));
         $this->assertSame([300, 225], [$width, $height]);
 
-        $this->assertSame(route('api.storage', ['path' => $data['original']]), $urls['original']);
-        $this->assertSame(route('api.storage', ['path' => $data['thumbnail']]), $urls['thumbnail']);
+        $this->assertSame(app(StorageUrlGenerator::class)->url($data['original']), $urls['original']);
+        $this->assertSame(app(StorageUrlGenerator::class)->url($data['thumbnail']), $urls['thumbnail']);
 
         $this->assertDatabaseHas('message_attachments', ['message_id' => $messageId]);
         $this->assertSame($messageId, $this->conversation->fresh()->last_message_id);

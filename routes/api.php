@@ -12,8 +12,9 @@ Route::middleware(['auth:sanctum', 'abilities:*', 'verified'])->group(function (
     require __DIR__.'/api/users.php';
     require __DIR__.'/api/conversations.php';
     require __DIR__.'/api/realtime.php';
-
-    Route::get('/storage/{path}', StorageController::class)
-        ->where('path', '.*')
-        ->name('api.storage');
 });
+
+Route::get('/storage/{path}', StorageController::class)
+    ->middleware('signed:relative')
+    ->where('path', '.*')
+    ->name('api.storage');

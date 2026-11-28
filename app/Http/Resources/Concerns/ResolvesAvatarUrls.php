@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources\Concerns;
 
+use App\Services\Storage\StorageUrlGenerator;
+
 trait ResolvesAvatarUrls
 {
     private function resolveAvatarUrls(?array $avatar): ?array
@@ -19,6 +21,6 @@ trait ResolvesAvatarUrls
 
     private function avatarUrl(string $path): string
     {
-        return route('api.storage', ['path' => $path]);
+        return app(StorageUrlGenerator::class)->url($path);
     }
 }

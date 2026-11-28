@@ -2,6 +2,7 @@
 
 namespace App\Services\User;
 
+use App\Services\Storage\StorageUrlGenerator;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
@@ -15,8 +16,9 @@ class AvatarService
 
     private ImageManager $imageManager;
 
-    public function __construct()
-    {
+    public function __construct(
+        private readonly StorageUrlGenerator $urls,
+    ) {
         $this->disk = Storage::disk('s3');
         $this->imageManager = new ImageManager(new Driver);
     }
@@ -56,9 +58,9 @@ class AvatarService
     public function getUrls(array $avatarPaths): array
     {
         return [
-            'original' => route('api.storage', ['path' => $avatarPaths['original']]),
-            'medium' => route('api.storage', ['path' => $avatarPaths['medium']]),
-            'small' => route('api.storage', ['path' => $avatarPaths['small']]),
+            'original' => $this->urls->url($avatarPaths['original']),
+            'medium' => $this->urls->url($avatarPaths['medium']),
+            'small' => $this->urls->url($avatarPaths['small']),
         ];
     }
 }

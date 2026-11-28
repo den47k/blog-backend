@@ -3,24 +3,17 @@
 namespace App\Http\Controllers\Storage;
 
 use App\Http\Controllers\Controller;
-use App\Repositories\Eloquent\ConversationRepository;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StorageController extends Controller
 {
-    /** Types a browser may render from the API origin; everything else is downloaded. */
     private const INLINE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-
-    public function __construct(
-        private readonly ConversationRepository $conversationRepository,
-    ) {}
 
     public function __invoke(string $path): StreamedResponse
     {
-        $this->authorizePath($path);
+        $this->ensureServablePath($path);
 
         $disk = Storage::disk('s3');
 
@@ -41,15 +34,10 @@ class StorageController extends Controller
         ]);
     }
 
-    /**
-     * Avatars are readable by any signed-in user, attachments only by
-     * participants of the conversation named in the path.
-     */
-    private function authorizePath(string $path): void
+    private function ensureServablePath(string $path): void
     {
         $segments = explode('/', $path);
 
-        // The disk would resolve "a/../b" to "b", past the check below.
         if (array_intersect($segments, ['', '.', '..']) !== []) {
             abort(404);
         }
@@ -61,7 +49,5 @@ class StorageController extends Controller
         if ($segments[0] !== 'attachments' || ! Str::isUuid($segments[1] ?? '')) {
             abort(404);
         }
-
-        Gate::authorize('view', $this->conversationRepository->findOrFail($segments[1]));
     }
 }

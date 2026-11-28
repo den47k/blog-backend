@@ -3,6 +3,7 @@
 namespace Tests\Feature\User;
 
 use App\Models\User;
+use App\Services\Storage\StorageUrlGenerator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -66,7 +67,7 @@ class UserProfileTest extends TestCase
         Storage::disk('s3')->assertExists(array_values($paths));
 
         foreach (['original', 'medium', 'small'] as $size) {
-            $this->assertSame(route('api.storage', ['path' => $paths[$size]]), $response->json("avatar.{$size}"));
+            $this->assertSame(app(StorageUrlGenerator::class)->url($paths[$size]), $response->json("avatar.{$size}"));
         }
 
         // Square crops, whatever the shape of the upload.

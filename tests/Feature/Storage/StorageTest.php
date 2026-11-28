@@ -4,12 +4,16 @@ namespace Tests\Feature\Storage;
 
 use App\Models\Conversation;
 use App\Models\User;
+use App\Services\Storage\StorageUrlGenerator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Tests\Concerns\InteractsWithAuth;
 use Tests\TestCase;
 
 class StorageTest extends TestCase
 {
+    use InteractsWithAuth;
+
     private User $author;
 
     private User $recipient;
@@ -40,39 +44,61 @@ class StorageTest extends TestCase
             ->json('data.message.attachment.urls');
     }
 
-    public function test_participants_can_read_an_attachment(): void
+    private function signed(string $path): string
     {
-        $urls = $this->sendAttachment(UploadedFile::fake()->image('photo.jpg', 640, 480));
-
-        foreach ([$this->author, $this->recipient] as $user) {
-            $this->actingAsUser($user);
-            $this->get($urls['original'])->assertOk();
-            $this->get($urls['thumbnail'])->assertOk();
-        }
+        return app(StorageUrlGenerator::class)->url($path);
     }
 
-    public function test_non_participant_cannot_read_an_attachment(): void
+    public function test_a_signed_attachment_url_works_without_a_bearer_token(): void
     {
         $urls = $this->sendAttachment(UploadedFile::fake()->image('photo.jpg', 640, 480));
 
-        $this->actingAsUser(User::factory()->create());
-        $this->getJson($urls['original'])->assertForbidden();
-        $this->getJson($urls['thumbnail'])->assertForbidden();
+        $this->withoutBearer();
+        $this->get($urls['original'])->assertOk();
+        $this->get($urls['thumbnail'])->assertOk();
     }
 
-    public function test_an_attachment_cannot_be_reached_through_another_conversation(): void
+    public function test_an_unsigned_url_is_rejected(): void
+    {
+        Storage::disk('s3')->put("avatars/{$this->author->id}/small.jpg", 'avatar');
+
+        $this->actingAsUser($this->author)
+            ->getJson("/api/storage/avatars/{$this->author->id}/small.jpg")
+            ->assertForbidden();
+    }
+
+    public function test_an_expired_url_is_rejected(): void
+    {
+        Storage::disk('s3')->put("avatars/{$this->author->id}/small.jpg", 'avatar');
+        $url = $this->signed("avatars/{$this->author->id}/small.jpg");
+
+        $this->travel(3)->days();
+
+        $this->getJson($url)->assertForbidden();
+    }
+
+    public function test_a_url_whose_path_was_changed_is_rejected(): void
     {
         $urls = $this->sendAttachment(UploadedFile::fake()->image('photo.jpg', 640, 480));
-        $outsider = User::factory()->create();
-        $own = $this->privateConversation($outsider, User::factory()->create());
+        $own = $this->privateConversation(User::factory()->create(), User::factory()->create());
 
-        $path = str_replace(
+        $tampered = str_replace(
             "attachments/{$this->conversation->id}/",
             "attachments/{$own->id}/../{$this->conversation->id}/",
             $urls['original'],
         );
 
-        $this->actingAsUser($outsider)->getJson($path)->assertNotFound();
+        $this->getJson($tampered)->assertForbidden();
+    }
+
+    public function test_urls_stay_the_same_within_a_day(): void
+    {
+        $path = "avatars/{$this->author->id}/small.jpg";
+        $first = $this->signed($path);
+
+        $this->travel(1)->hours();
+
+        $this->assertSame($first, $this->signed($path));
     }
 
     public function test_images_are_served_inline_and_never_sniffed(): void
@@ -100,13 +126,11 @@ class StorageTest extends TestCase
         $this->assertStringContainsString('alert(1)', $response->streamedContent());
     }
 
-    public function test_avatars_are_readable_by_any_signed_in_user(): void
+    public function test_signed_avatar_urls_are_readable(): void
     {
         Storage::disk('s3')->put("avatars/{$this->author->id}/small.jpg", 'avatar');
 
-        $this->actingAsUser(User::factory()->create())
-            ->get("/api/storage/avatars/{$this->author->id}/small.jpg")
-            ->assertOk();
+        $this->get($this->signed("avatars/{$this->author->id}/small.jpg"))->assertOk();
     }
 
     public function test_paths_outside_avatars_and_attachments_do_not_exist(): void
@@ -114,21 +138,14 @@ class StorageTest extends TestCase
         Storage::disk('s3')->put('backups/dump.sql', 'secret');
         Storage::disk('s3')->put('attachments/not-a-conversation/file.txt', 'secret');
 
-        $this->actingAsUser($this->author);
-        $this->getJson('/api/storage/backups/dump.sql')->assertNotFound();
-        $this->getJson('/api/storage/attachments/not-a-conversation/file.txt')->assertNotFound();
-        $this->getJson('/api/storage/attachments/00000000-0000-4000-8000-000000000000/file.txt')->assertNotFound();
+        $this->getJson($this->signed('backups/dump.sql'))->assertNotFound();
+        $this->getJson($this->signed('attachments/not-a-conversation/file.txt'))->assertNotFound();
+        $this->getJson($this->signed('attachments/a/../b/file.txt'))->assertNotFound();
     }
 
     public function test_a_missing_file_is_not_found(): void
     {
-        $this->actingAsUser($this->author)
-            ->getJson("/api/storage/attachments/{$this->conversation->id}/missing.jpg")
+        $this->getJson($this->signed("attachments/{$this->conversation->id}/missing.jpg"))
             ->assertNotFound();
-    }
-
-    public function test_storage_requires_authentication(): void
-    {
-        $this->getJson("/api/storage/avatars/{$this->author->id}/small.jpg")->assertUnauthorized();
     }
 }
